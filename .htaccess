@@ -1,0 +1,34 @@
+RewriteEngine On
+RewriteBase /kartmania-core/
+
+# ======================================
+# General Static Pages
+# ======================================
+RewriteRule ^/?$            index.php           [L]
+RewriteRule ^vendor/?$            vendor.php           [L]
+RewriteRule ^become-seller/?$            become-seller.php           [L]
+RewriteRule ^profile/?$    profile.php    [L]
+RewriteRule ^wishlist/?$    wishlist.php    [L]
+RewriteRule ^cart/?$    cart.php    [L]
+RewriteRule ^contact-us/?$    contact-us.php    [L]
+RewriteRule ^login/?$    login.php    [L]
+RewriteRule ^register/?$    register.php    [L]
+RewriteRule ^forgot-password/?$    forgot-password.php    [L]
+RewriteRule ^checkout/?$    checkout.php    [L]
+RewriteRule ^maintenance/?$    maintenance.php    [L]
+
+
+# Products
+RewriteRule ^product/?$         shop.php    [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^product/([^/]+)/?$ product-details.php?product=$1 [L,QSA]
+RewriteRule ^product/category/([^/]+)/?$ shop-by-category.php?category=$1 [L,QSA]
+
+#Blog
+RewriteRule ^blog/?$            blog.php            [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^blog/([^/]+)/?$ blog-details.php?blog=$1 [L,QSA]
+
+
