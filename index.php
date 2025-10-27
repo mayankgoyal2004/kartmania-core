@@ -614,12 +614,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                     // Calculate rating: Use average of review ratings if available, else use popularity
                     $rating = 0;
+                    $reviewCount = 0;
+
                     if (!empty($product['reviews'])) {
-                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                        $rating = $totalRating / count($product['reviews']);
-                    } else {
-                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                        $totalRating = 0;
+                        $validReviews = 0;
+
+                        foreach ($product['reviews'] as $review) {
+                            // Safely extract rating value
+                            if (isset($review['rating'])) {
+                                if (is_array($review['rating'])) {
+                                    // If rating is an array, try to get numeric value
+                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                } else {
+                                    // If rating is direct value
+                                    $ratingValue = floatval($review['rating']);
+                                }
+
+                                if ($ratingValue > 0) {
+                                    $totalRating += $ratingValue;
+                                    $validReviews++;
+                                }
+                            }
+                        }
+
+                        if ($validReviews > 0) {
+                            $rating = $totalRating / $validReviews;
+                            $reviewCount = $validReviews;
+                        }
                     }
+
+                    // Fallback to popularity if no valid reviews
+                    if ($rating === 0) {
+                        $rating = ($product['popularity'] ?? 0) / 2;
+                        $reviewCount = 0; // No actual reviews, just using popularity
+                    }
+
+                    // Format rating to 1 decimal place
+                    $formattedRating = number_format($rating, 1);
                     ?>
                     <div class="" data-aos="fade-up" data-aos-duration="<?= 200 + $key * 200 ?>">
                         <div
@@ -641,11 +673,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                     <span
                                         class="text-gray-400 text-md fw-semibold text-decoration-line-through">₹<?= number_format($originalPrice, 2) ?></span>
                                 </div>
-                                <div class="flex-align gap-6">
-                                    <span class="text-xs fw-bold text-gray-600"><?= number_format($rating, 1) ?></span>
-                                    <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                            class="ph-fill ph-star"></i></span>
-                                    <span class="text-xs fw-bold text-gray-600">(17k)</span>
+                                <div class="flex-align mb-20 mt-16 gap-6">
+                                    <?php if ($reviewCount > 0): ?>
+                                        <span class="text-xs fw-medium text-gray-500">
+                                            <?= $formattedRating ?>
+                                        </span>
+                                        <span class="text-xs fw-medium text-warning-600 d-flex">
+                                            <i class="ph-fill ph-star"></i>
+                                        </span>
+                                        <span class="text-xs fw-medium text-gray-500">
+                                            (<?= $reviewCount ?>)
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-xs fw-medium text-gray-500">
+                                            No reviews yet
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                                 <h6 class="title text-lg fw-semibold mt-12 mb-20">
                                     <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -1104,12 +1147,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                             // Calculate rating: Use average of review ratings if available, else use popularity
                             $rating = 0;
+                            $reviewCount = 0;
+
                             if (!empty($product['reviews'])) {
-                                $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                $rating = $totalRating / count($product['reviews']);
-                            } else {
-                                $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                $totalRating = 0;
+                                $validReviews = 0;
+
+                                foreach ($product['reviews'] as $review) {
+                                    // Safely extract rating value
+                                    if (isset($review['rating'])) {
+                                        if (is_array($review['rating'])) {
+                                            // If rating is an array, try to get numeric value
+                                            $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                        } else {
+                                            // If rating is direct value
+                                            $ratingValue = floatval($review['rating']);
+                                        }
+
+                                        if ($ratingValue > 0) {
+                                            $totalRating += $ratingValue;
+                                            $validReviews++;
+                                        }
+                                    }
+                                }
+
+                                if ($validReviews > 0) {
+                                    $rating = $totalRating / $validReviews;
+                                    $reviewCount = $validReviews;
+                                }
                             }
+
+                            // Fallback to popularity if no valid reviews
+                            if ($rating === 0) {
+                                $rating = ($product['popularity'] ?? 0) / 2;
+                                $reviewCount = 0; // No actual reviews, just using popularity
+                            }
+
+                            // Format rating to 1 decimal place
+                            $formattedRating = number_format($rating, 1);
                             ?>
                             <div class="col-xxl-2 col-lg-3 col-sm-4 col-6" data-aos="fade-up"
                                 data-aos-duration="<?= 200 + $key * 200 ?>">
@@ -1142,12 +1217,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     class="text-gray-400 text-md fw-semibold text-decoration-line-through">
                                                     ₹<?= number_format($originalPrice, 2) ?></span>
                                             </div>
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-600"><?= number_format($rating, 1) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-600">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <a href="javascript:void(0);"
                                                 data-product-id="<?= htmlspecialchars($product['id']) ?>"
@@ -1889,12 +1974,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                             // Calculate rating: Use average of review ratings if available, else use popularity
                             $rating = 0;
+                            $reviewCount = 0;
+
                             if (!empty($product['reviews'])) {
-                                $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                $rating = $totalRating / count($product['reviews']);
-                            } else {
-                                $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                $totalRating = 0;
+                                $validReviews = 0;
+
+                                foreach ($product['reviews'] as $review) {
+                                    // Safely extract rating value
+                                    if (isset($review['rating'])) {
+                                        if (is_array($review['rating'])) {
+                                            // If rating is an array, try to get numeric value
+                                            $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                        } else {
+                                            // If rating is direct value
+                                            $ratingValue = floatval($review['rating']);
+                                        }
+
+                                        if ($ratingValue > 0) {
+                                            $totalRating += $ratingValue;
+                                            $validReviews++;
+                                        }
+                                    }
+                                }
+
+                                if ($validReviews > 0) {
+                                    $rating = $totalRating / $validReviews;
+                                    $reviewCount = $validReviews;
+                                }
                             }
+
+                            // Fallback to popularity if no valid reviews
+                            if ($rating === 0) {
+                                $rating = ($product['popularity'] ?? 0) / 2;
+                                $reviewCount = 0; // No actual reviews, just using popularity
+                            }
+
+                            // Format rating to 1 decimal place
+                            $formattedRating = number_format($rating, 1);
                             ?>
                             <div class="" data-aos="fade-up" data-aos-duration="200">
                                 <div
@@ -1911,17 +2028,27 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                     <div class="product-card__content mt-12">
                                         <div class="product-card__price mb-8 d-flex align-items-center gap-8">
                                             <span
-                                                class="text-heading text-md fw-semibold ">₹<?= number_format($discountPercentage, 2) ?>
+                                                class="text-heading text-md fw-semibold ">₹<?= number_format($discountedPrice, 2) ?>
                                                 <span class="text-gray-500 fw-normal">/Qty</span> </span>
                                             <span class="text-gray-400 text-md fw-semibold text-decoration-line-through">
                                                 ₹<?= number_format($originalPrice, 2) ?></span>
                                         </div>
-                                        <div class="flex-align gap-6">
-                                            <span
-                                                class="text-xs fw-bold text-gray-600"><?= number_format($rating, 1) ?></span>
-                                            <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                    class="ph-fill ph-star"></i></span>
-                                            <span class="text-xs fw-bold text-gray-600">(17k)</span>
+                                        <div class="flex-align mb-20 mt-16 gap-6">
+                                            <?php if ($reviewCount > 0): ?>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    <?= $formattedRating ?>
+                                                </span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                    <i class="ph-fill ph-star"></i>
+                                                </span>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    (<?= $reviewCount ?>)
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    No reviews yet
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
                                         <h6 class="title text-lg fw-semibold mt-12 mb-20">
                                             <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -2289,14 +2416,45 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                     $soldPercentage = ($totalStock > 0) ? ($sold / $totalStock) * 100 : 0;
 
 
-                                    // Calculate rating: Use average of review ratings if available, else use popularity
-                                    $rating = 0;
+                                    // Calculate rating: Use average of review  $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -2304,12 +2462,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -2334,11 +2502,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/dynamic_dgrey/1 (1).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2356,11 +2535,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/hawk_navy/1 (1).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2378,11 +2568,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/hawk_navy/1 (5).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2401,11 +2602,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2454,12 +2666,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                                     // Calculate rating: Use average of review ratings if available, else use popularity
                                     $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -2467,12 +2711,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -2495,11 +2749,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/dynamic_geen/1 (1).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2517,11 +2782,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/trackpant/black/1 (1).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2540,11 +2816,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2563,11 +2850,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2624,12 +2922,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                                     // Calculate rating: Use average of review ratings if available, else use popularity
                                     $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -2637,12 +2967,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -2667,11 +3007,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2690,11 +3041,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2713,11 +3075,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2735,11 +3108,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/hawk_navy/1 (7).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2787,12 +3171,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                                     // Calculate rating: Use average of review ratings if available, else use popularity
                                     $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -2800,12 +3216,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -2829,11 +3255,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/hawk_navy/1 (7).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2851,11 +3288,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     src="assets/images/product/shorts/hawk_black/1 (2).jpg" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2874,11 +3322,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2897,11 +3356,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -2960,12 +3430,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                                     // Calculate rating: Use average of review ratings if available, else use popularity
                                     $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -2973,12 +3475,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -3003,11 +3515,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3026,11 +3549,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3049,11 +3583,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3072,11 +3617,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3124,12 +3680,44 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
                                     // Calculate rating: Use average of review ratings if available, else use popularity
                                     $rating = 0;
+                                    $reviewCount = 0;
+
                                     if (!empty($product['reviews'])) {
-                                        $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                        $rating = $totalRating / count($product['reviews']);
-                                    } else {
-                                        $rating = ($product['popularity'] / 2); // Fallback to popularity-based rating
+                                        $totalRating = 0;
+                                        $validReviews = 0;
+
+                                        foreach ($product['reviews'] as $review) {
+                                            // Safely extract rating value
+                                            if (isset($review['rating'])) {
+                                                if (is_array($review['rating'])) {
+                                                    // If rating is an array, try to get numeric value
+                                                    $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                                } else {
+                                                    // If rating is direct value
+                                                    $ratingValue = floatval($review['rating']);
+                                                }
+
+                                                if ($ratingValue > 0) {
+                                                    $totalRating += $ratingValue;
+                                                    $validReviews++;
+                                                }
+                                            }
+                                        }
+
+                                        if ($validReviews > 0) {
+                                            $rating = $totalRating / $validReviews;
+                                            $reviewCount = $validReviews;
+                                        }
                                     }
+
+                                    // Fallback to popularity if no valid reviews
+                                    if ($rating === 0) {
+                                        $rating = ($product['popularity'] ?? 0) / 2;
+                                        $reviewCount = 0; // No actual reviews, just using popularity
+                                    }
+
+                                    // Format rating to 1 decimal place
+                                    $formattedRating = number_format($rating, 1);
                                     ?>
                                     <div class="flex-align gap-16">
                                         <div class="w-90 h-90 rounded-12 border border-gray-100 flex-shrink-0">
@@ -3137,12 +3725,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                 class="link"><img src="<?= htmlspecialchars($primaryImage) ?>" alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span
-                                                    class="text-xs fw-bold text-gray-500"><?= htmlspecialchars($rating) ?></span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -3167,11 +3765,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3190,11 +3799,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3213,11 +3833,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3236,11 +3867,22 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                                     alt=""></a>
                                         </div>
                                         <div class="product-card__content mt-12">
-                                            <div class="flex-align gap-6">
-                                                <span class="text-xs fw-bold text-gray-500">4.8</span>
-                                                <span class="text-15 fw-bold text-warning-600 d-flex"><i
-                                                        class="ph-fill ph-star"></i></span>
-                                                <span class="text-xs fw-bold text-gray-500">(17k)</span>
+                                            <div class="flex-align mb-20 mt-16 gap-6">
+                                                <?php if ($reviewCount > 0): ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        <?= $formattedRating ?>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                        <i class="ph-fill ph-star"></i>
+                                                    </span>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        (<?= $reviewCount ?>)
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-500">
+                                                        No reviews yet
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <h6 class="title text-lg fw-semibold mt-8 mb-8">
                                                 <a href="product-details.php" class="link text-line-1">Taylor Farms Broccoli
@@ -3830,14 +4472,13 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                 success: function (response, textStatus, xhr) {
                     if (response.message === "All product data fetched with related category and unit" && response.data.length > 0) {
                         // Get the container for the product cards
-                        const productCardsContainer = $('.daily-best-sells').first(); // Target the container with product cards
+                        const productCardsContainer = $('.daily-best-sells').first();
                         let productHtml = '';
                         let baseUrl = `<?= getenv("BASE_URL") ?>`;
 
-
                         // Limit to 4 products to match the static layout
                         const products = response.data.slice(0, 4);
-                        let countdownId = 6; // Start with countdown6 to match static HTML
+                        let countdownId = 6;
 
                         products.forEach(product => {
                             // Calculate discounted price
@@ -3845,10 +4486,49 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                             const discountPercentage = product.discountValue || 0;
                             const discountedPrice = originalPrice - (originalPrice * discountPercentage / 100);
 
-                            // Calculate progress bar (assuming sold = total stock - available stock)
-                            const totalStock = product.stock || 100; // Default to 100 if stock is missing
-                            const sold = Math.floor(totalStock * 0.35); // Example: 35% sold, adjust based on actual data if available
+                            // Calculate progress bar
+                            const totalStock = product.stock || 100;
+                            const sold = Math.floor(totalStock * 0.35);
                             const progressPercentage = (sold / totalStock) * 100;
+
+                            // Calculate rating and review count
+                            let rating = 0;
+                            let reviewCount = 0;
+
+                            if (product.reviews && product.reviews.length > 0) {
+                                let totalRating = 0;
+                                let validReviews = 0;
+
+                                product.reviews.forEach(review => {
+                                    if (review.rating) {
+                                        let ratingValue = 0;
+                                        if (typeof review.rating === 'object' && review.rating.value) {
+                                            ratingValue = parseFloat(review.rating.value);
+                                        } else {
+                                            ratingValue = parseFloat(review.rating);
+                                        }
+
+                                        if (ratingValue > 0) {
+                                            totalRating += ratingValue;
+                                            validReviews++;
+                                        }
+                                    }
+                                });
+
+                                if (validReviews > 0) {
+                                    rating = totalRating / validReviews;
+                                    reviewCount = validReviews;
+                                }
+                            }
+
+                            // Fallback to popularity if no valid reviews
+                            if (rating === 0) {
+                                rating = (product.popularity || 0) / 2;
+                                reviewCount = 0;
+                            }
+
+                            // Format rating to 1 decimal place
+                            const formattedRating = rating.toFixed(1);
 
                             // Generate HTML for each product card
                             productHtml += `
@@ -3882,16 +4562,20 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                     <span class="text-heading text-md fw-semibold">₹${discountedPrice.toFixed(2)} <span class="text-gray-500 fw-normal">/Qty</span></span>
                                 </div>
                                 <div class="flex-align gap-6">
-                                    <span class="text-xs fw-bold text-gray-600">4.8</span>
-                                    <span class="text-15 fw-bold text-warning-600 d-flex"><i class="ph-fill ph-star"></i></span>
-                                    <span class="text-xs fw-bold text-gray-600">(${product.reviews.length || '0'}k)</span>
+                                    ${reviewCount > 0 ? `
+                                        <span class="text-xs fw-medium text-gray-500">${formattedRating}</span>
+                                        <span class="text-15 fw-medium text-warning-600 d-flex"><i class="ph-fill ph-star"></i></span>
+                                        <span class="text-xs fw-medium text-gray-500">(${reviewCount})</span>
+                                    ` : `
+                                        <span class="text-xs fw-medium text-gray-500">No reviews yet</span>
+                                    `}
                                 </div>
                                 <h6 class="title text-lg fw-semibold mt-12 mb-8">
                                     <a href="${baseUrl + "/product/" + makeSlug(product.name)}" class="link text-line-2">${product.name}</a>
                                 </h6>
                                 <div class="flex-align gap-4">
                                     <span class="text-main-600 text-md d-flex"><i class="ph-fill ph-storefront"></i></span>
-                                    <span class="text-gray-500 text-xs">By ${product.category.name || 'Unknown'}</span>
+                                    <span class="text-gray-500 text-xs">By ${product.category?.name || 'Unknown'}</span>
                                 </div>
                                 <div class="mt-12">
                                     <div class="progress w-100 bg-color-three rounded-pill h-4" role="progressbar" aria-label="Basic example" aria-valuenow="${progressPercentage}" aria-valuemin="0" aria-valuemax="100">
@@ -3922,7 +4606,6 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                     const distance = expiryDate - now;
 
                                     if (distance < 0) {
-                                        // countdownElement.innerHTML = '<span>Expired</span>';
                                         return;
                                     }
 
@@ -3951,7 +4634,6 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                     $('.row.gy-4').first().html('<p>Failed to load products. Please try again later.</p>');
                 }
             });
-
 
             $.ajax({
                 url: "<?php echo getenv("FETCH_ALL_PRODUCT_CATEGORY_API") ?>",
@@ -4074,17 +4756,17 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                             notyf.error("Something went wrong.");
                         }
                     },
-                 error: function (xhr) {
-    console.log(xhr);
+                    error: function (xhr) {
+                        console.log(xhr);
 
-    if (xhr.status === 409) {
-        notyf.error(xhr.responseJSON?.message || "Email already subscribed.");
-    } else if (xhr.status === 400) {
-        notyf.error(xhr.responseJSON?.message || "Invalid email address.");
-    } else {
-        notyf.error("Server error or invalid request.");
-    }
-},
+                        if (xhr.status === 409) {
+                            notyf.error(xhr.responseJSON?.message || "Email already subscribed.");
+                        } else if (xhr.status === 400) {
+                            notyf.error(xhr.responseJSON?.message || "Invalid email address.");
+                        } else {
+                            notyf.error("Server error or invalid request.");
+                        }
+                    },
                 });
             });
 

@@ -455,37 +455,37 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
                         </div>
                     </div>
                 </div>
-             <div class="col-xl-3 col-lg-4">
-    <div class="cart-sidebar border border-gray-100 rounded-8 px-24 py-40">
-        <h6 class="text-xl mb-32">Cart Totals</h6>
-        <div class="bg-color-three rounded-8 p-24">
-            <div class="mb-24 flex-between gap-8">
-                <span class="text-gray-900 font-heading-two">Subtotal</span>
-                <span class="text-gray-900 fw-semibold cart-subtotal">₹00.00</span>
-            </div>
-            <div class="mb-24 flex-between gap-8">
-                <span class="text-gray-900 font-heading-two">Discount</span>
-                <span class="text-success-600 fw-semibold cart-discount">-₹00.00</span>
-            </div>
-            <div class="mb-24 flex-between gap-8">
-                <span class="text-gray-900 font-heading-two">Estimated Tax</span>
-                <span class="text-gray-900 fw-semibold">₹10.00</span>
-            </div>
-            <div class="mb-0 flex-between gap-8">
-                <span class="text-gray-900 font-heading-two">Shipping</span>
-                <span class="text-success-600 fw-semibold">Free</span>
-            </div>
-        </div>
-        <div class="bg-color-three rounded-8 p-24 mt-24">
-            <div class="flex-between gap-8">
-                <span class="text-gray-900 text-xl fw-semibold">Total</span>
-                <span class="text-gray-900 text-xl fw-semibold cart-total">₹00.00</span>
-            </div>
-        </div>
-        <a href="<?= getenv("BASE_URL") . "/checkout" ?>"
-            class="btn btn-main mt-40 py-18 w-100 rounded-8">Proceed to checkout</a>
-    </div>
-</div>
+                <div class="col-xl-3 col-lg-4">
+                    <div class="cart-sidebar border border-gray-100 rounded-8 px-24 py-40">
+                        <h6 class="text-xl mb-32">Cart Totals</h6>
+                        <div class="bg-color-three rounded-8 p-24">
+                            <div class="mb-24 flex-between gap-8">
+                                <span class="text-gray-900 font-heading-two">Subtotal</span>
+                                <span class="text-gray-900 fw-semibold cart-subtotal">₹00.00</span>
+                            </div>
+                            <div class="mb-24 flex-between gap-8">
+                                <span class="text-gray-900 font-heading-two">Discount</span>
+                                <span class="text-success-600 fw-semibold cart-discount">-₹00.00</span>
+                            </div>
+                            <div class="mb-24 flex-between gap-8">
+                                <span class="text-gray-900 font-heading-two">Estimated Tax</span>
+                                <span class="text-gray-900 fw-semibold">₹10.00</span>
+                            </div>
+                            <div class="mb-0 flex-between gap-8">
+                                <span class="text-gray-900 font-heading-two">Shipping</span>
+                                <span class="text-success-600 fw-semibold">Free</span>
+                            </div>
+                        </div>
+                        <div class="bg-color-three rounded-8 p-24 mt-24">
+                            <div class="flex-between gap-8">
+                                <span class="text-gray-900 text-xl fw-semibold">Total</span>
+                                <span class="text-gray-900 text-xl fw-semibold cart-total">₹00.00</span>
+                            </div>
+                        </div>
+                        <a href="<?= getenv("BASE_URL") . "/checkout" ?>"
+                            class="btn btn-main mt-40 py-18 w-100 rounded-8">Proceed to checkout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -589,93 +589,93 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
     <!-- main js -->
     <script src="assets/js/main.js"></script>
 
-   <script>
-$(document).ready(function () {
+    <script>
+        $(document).ready(function () {
 
-    let baseUrl = `<?= getenv("BASE_URL") ?>`;
-    let productIds = JSON.parse(localStorage.getItem('cart')) || [];
+            let baseUrl = `<?= getenv("BASE_URL") ?>`;
+            let productIds = JSON.parse(localStorage.getItem('cart')) || [];
 
-    if (productIds.length === 0) {
-        Swal.fire({
-            title: 'Empty Cart',
-            text: 'Your cart is empty. Add some products!',
-            icon: 'info',
-            confirmButtonText: 'Shop Now'
-        }).then(() => {
-            window.location.href = `${baseUrl}/product`;
-        });
-        return;
-    }
-
-    let products = [];
-
-    function makeSlug(string) {
-        return string.toLowerCase().replace(/\s+/g, "-");
-    }
-
-    // Function to calculate discounted price (matching product details page logic)
-    function calculateDiscountedPrice(originalPrice, discountValue, discountType) {
-        let discountedPrice = originalPrice;
-        
-        if (discountValue > 0) {
-            if (discountType === 'CASH') {
-                // Discount is in rupees
-                discountedPrice = Math.max(0, originalPrice - discountValue);
-            } else if (discountType === 'PERCENTAGE') {
-                // Discount is percentage
-                discountedPrice = Math.max(0, originalPrice - (originalPrice * discountValue / 100));
+            if (productIds.length === 0) {
+                Swal.fire({
+                    title: 'Empty Cart',
+                    text: 'Your cart is empty. Add some products!',
+                    icon: 'info',
+                    confirmButtonText: 'Shop Now'
+                }).then(() => {
+                    window.location.href = `${baseUrl}/product`;
+                });
+                return;
             }
-        }
-        
-        return discountedPrice;
-    }
 
-    // Function to get discount display text
-    function getDiscountDisplay(discountValue, discountType) {
-        if (discountValue > 0) {
-            if (discountType === 'PERCENTAGE') {
-                return `-${discountValue}% OFF`;
-            } else if (discountType === 'CASH') {
-                return `-₹${discountValue} OFF`;
+            let products = [];
+
+            function makeSlug(string) {
+                return string.toLowerCase().replace(/\s+/g, "-");
             }
-        }
-        return '';
-    }
 
-    $.when(...productIds.map(id =>
-        $.ajax({
-            url: `<?php echo getenv("FETCH_ALL_PRODUCT_API") ?>/${id}`,
-            type: 'GET',
-            headers: {
-                'Accept': 'application/json'
+            // Function to calculate discounted price (matching product details page logic)
+            function calculateDiscountedPrice(originalPrice, discountValue, discountType) {
+                let discountedPrice = originalPrice;
+
+                if (discountValue > 0) {
+                    if (discountType === 'CASH') {
+                        // Discount is in rupees
+                        discountedPrice = Math.max(0, originalPrice - discountValue);
+                    } else if (discountType === 'PERCENTAGE') {
+                        // Discount is percentage
+                        discountedPrice = Math.max(0, originalPrice - (originalPrice * discountValue / 100));
+                    }
+                }
+
+                return discountedPrice;
             }
-        }).then(response => {
-            if (response.data) {
-                products.push(response.data);
-                console.log(response.data);
+
+            // Function to get discount display text
+            function getDiscountDisplay(discountValue, discountType) {
+                if (discountValue > 0) {
+                    if (discountType === 'PERCENTAGE') {
+                        return `-${discountValue}% OFF`;
+                    } else if (discountType === 'CASH') {
+                        return `-₹${discountValue} OFF`;
+                    }
+                }
+                return '';
             }
-        })
-    )).then(() => {
-        // Function to populate the table with product data
-        function populateCartTable(products) {
-            let tableBody = $('#cartTableBody');
-            tableBody.empty(); // Clear existing rows
 
-            products.forEach(product => {
-                let primaryImageUrl = product.images.find(img => img.isPrimary)?.imageUrl || `${baseUrl}/assets/images/thumbs/product-two-img1.png`;
-                let rating = product.reviews.length > 0 ? product.reviews[0].rating : 'No reviews';
-                
-                // Get discount values (matching product details page logic)
-                let originalPrice = parseFloat(product.price) || 0;
-                let discountValue = parseFloat(product.discountValue) || 0;
-                let discountType = (product.discount || '').toUpperCase();
-                
-                // Calculate discounted price
-                let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
-                let discountAmount = originalPrice - discountedPrice;
-                let discountDisplay = getDiscountDisplay(discountValue, discountType);
+            $.when(...productIds.map(id =>
+                $.ajax({
+                    url: `<?php echo getenv("FETCH_ALL_PRODUCT_API") ?>/${id}`,
+                    type: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.data) {
+                        products.push(response.data);
+                        console.log(response.data);
+                    }
+                })
+            )).then(() => {
+                // Function to populate the table with product data
+                function populateCartTable(products) {
+                    let tableBody = $('#cartTableBody');
+                    tableBody.empty(); // Clear existing rows
 
-                let row = `
+                    products.forEach(product => {
+                        let primaryImageUrl = product.images.find(img => img.isPrimary)?.imageUrl || `${baseUrl}/assets/images/thumbs/product-two-img1.png`;
+                        let rating = product.reviews.length > 0 ? product.reviews[0].rating : 'No reviews';
+
+                        // Get discount values (matching product details page logic)
+                        let originalPrice = parseFloat(product.price) || 0;
+                        let discountValue = parseFloat(product.discountValue) || 0;
+                        let discountType = (product.discount || '').toUpperCase();
+
+                        // Calculate discounted price
+                        let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
+                        let discountAmount = originalPrice - discountedPrice;
+                        let discountDisplay = getDiscountDisplay(discountValue, discountType);
+
+                        let row = `
                 <tr data-product-id="${product.id}" 
                     data-original-price="${originalPrice}" 
                     data-discount-value="${discountValue}" 
@@ -750,179 +750,179 @@ $(document).ready(function () {
                     </td>
                 </tr>
             `;
-                tableBody.append(row);
-            });
+                        tableBody.append(row);
+                    });
 
-            updateCartTotals();
-        }
-
-        // Call the function to populate the table
-        populateCartTable(products);
-
-        if (products.length === 0) {
-            Swal.fire({
-                title: 'Error',
-                text: 'No products found in cart.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            return;
-        }
-    });
-
-    // Quantity Increase
-    $(document).on('click', '.quantity__plus', function () {
-        let input = $(this).siblings('.quantity__input');
-        let currentVal = parseInt(input.val());
-        if (!isNaN(currentVal)) {
-            input.val(currentVal + 1);
-            updateRowPrice($(this).closest('tr'));
-        }
-        updateCartTotals();
-    });
-
-    // Quantity Decrease
-    $(document).on('click', '.quantity__minus', function () {
-        let input = $(this).siblings('.quantity__input');
-        let currentVal = parseInt(input.val());
-        if (!isNaN(currentVal) && currentVal > 1) {
-            input.val(currentVal - 1);
-            updateRowPrice($(this).closest('tr'));
-        }
-        updateCartTotals();
-    });
-
-    // Update row price when quantity changes
-    function updateRowPrice(row) {
-        let originalPrice = parseFloat(row.data('original-price')) || 0;
-        let discountValue = parseFloat(row.data('discount-value')) || 0;
-        let discountType = row.data('discount-type') || '';
-        let quantity = parseInt(row.find('.quantity__input').val()) || 1;
-        
-        let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
-        let subtotal = (discountedPrice * quantity).toFixed(2);
-        
-        row.find('.subtotal-price').text(`₹${subtotal}`);
-    }
-
-    function updateCartTotals() {
-        let subtotal = 0;
-        let totalDiscount = 0;
-        let tax = 10.00;
-        let shipping = 0;
-
-        $('#cartTableBody tr').each(function () {
-            let row = $(this);
-            let originalPrice = parseFloat(row.data('original-price')) || 0;
-            let discountValue = parseFloat(row.data('discount-value')) || 0;
-            let discountType = row.data('discount-type') || '';
-            let quantity = parseInt(row.find('.quantity__input').val()) || 1;
-            
-            let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
-            let rowSubtotal = discountedPrice * quantity;
-            let rowDiscount = (originalPrice - discountedPrice) * quantity;
-            
-            subtotal += rowSubtotal;
-            totalDiscount += rowDiscount;
-        });
-
-        let finalTotal = subtotal + tax + shipping;
-
-        // Update the display
-        $('.cart-subtotal').text(`₹${subtotal.toFixed(2)}`);
-        $('.cart-discount').text(`-₹${totalDiscount.toFixed(2)}`);
-        $('.cart-total').text(`₹${finalTotal.toFixed(2)}`);
-    }
-
-    // Store cart quantities in localStorage
-    function storeCartQuantities() {
-        let quantities = {};
-        $('#cartTableBody tr').each(function() {
-            let productId = $(this).data('product-id');
-            let quantity = parseInt($(this).find('.quantity__input').val()) || 1;
-            quantities[productId] = quantity;
-        });
-        localStorage.setItem('cartQuantities', JSON.stringify(quantities));
-    }
-
-    // Call this whenever quantity changes
-    $(document).on('click', '.quantity__plus, .quantity__minus', function() {
-        storeCartQuantities();
-    });
-
-    // Load saved quantities when page loads
-    function loadCartQuantities() {
-        let savedQuantities = JSON.parse(localStorage.getItem('cartQuantities')) || {};
-        $('#cartTableBody tr').each(function() {
-            let productId = $(this).data('product-id');
-            if (savedQuantities[productId]) {
-                $(this).find('.quantity__input').val(savedQuantities[productId]);
-                updateRowPrice($(this));
-            }
-        });
-        updateCartTotals();
-    }
-
-    // Call load function after products are loaded
-    setTimeout(loadCartQuantities, 500);
-
-    $(document).on('click', '.remove-tr-btn', function (e) {
-        e.preventDefault();
-        let productId = $(this).data("product-id");
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
-        cart = cart.filter(id => id != productId);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        
-        // Also remove from quantities
-        let quantities = JSON.parse(localStorage.getItem('cartQuantities')) || {};
-        delete quantities[productId];
-        localStorage.setItem('cartQuantities', JSON.stringify(quantities));
-        
-        $(this).closest('tr').remove();
-
-        updateCartTotals();
-
-        Swal.fire({
-            title: 'Product Removed',
-            text: 'Product removed from cart!',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-            willClose: () => {
-                if ($('#cartTableBody tr').length === 0) {
-                    window.location.reload();
+                    updateCartTotals();
                 }
+
+                // Call the function to populate the table
+                populateCartTable(products);
+
+                if (products.length === 0) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'No products found in cart.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+            });
+
+            // Quantity Increase
+            $(document).on('click', '.quantity__plus', function () {
+                let input = $(this).siblings('.quantity__input');
+                let currentVal = parseInt(input.val());
+                if (!isNaN(currentVal)) {
+                    input.val(currentVal + 1);
+                    updateRowPrice($(this).closest('tr'));
+                }
+                updateCartTotals();
+            });
+
+            // Quantity Decrease
+            $(document).on('click', '.quantity__minus', function () {
+                let input = $(this).siblings('.quantity__input');
+                let currentVal = parseInt(input.val());
+                if (!isNaN(currentVal) && currentVal > 1) {
+                    input.val(currentVal - 1);
+                    updateRowPrice($(this).closest('tr'));
+                }
+                updateCartTotals();
+            });
+
+            // Update row price when quantity changes
+            function updateRowPrice(row) {
+                let originalPrice = parseFloat(row.data('original-price')) || 0;
+                let discountValue = parseFloat(row.data('discount-value')) || 0;
+                let discountType = row.data('discount-type') || '';
+                let quantity = parseInt(row.find('.quantity__input').val()) || 1;
+
+                let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
+                let subtotal = (discountedPrice * quantity).toFixed(2);
+
+                row.find('.subtotal-price').text(`₹${subtotal}`);
             }
-        });
-    });
 
-    let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
-    $(".cart-item-count").text(productIdsCart.length);
+            function updateCartTotals() {
+                let subtotal = 0;
+                let totalDiscount = 0;
+                let tax = 10.00;
+                let shipping = 0;
 
-    let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-    $(".wishlist-item-count").text(productIdsWishlist.length);
+                $('#cartTableBody tr').each(function () {
+                    let row = $(this);
+                    let originalPrice = parseFloat(row.data('original-price')) || 0;
+                    let discountValue = parseFloat(row.data('discount-value')) || 0;
+                    let discountType = row.data('discount-type') || '';
+                    let quantity = parseInt(row.find('.quantity__input').val()) || 1;
 
-    $.ajax({
-        url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
-        type: "get",
-        success: function (response, textStatus, xhr) {
-            if (response.data && Array.isArray(response.data)) {
-                const logoItems = response.data.filter(item => item.category === "LOGO");
-                logoItems.forEach(item => {
-                    let logoSection = $(".logo .link");
-                    logoSection.empty();
-                    logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
+                    let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
+                    let rowSubtotal = discountedPrice * quantity;
+                    let rowDiscount = (originalPrice - discountedPrice) * quantity;
+
+                    subtotal += rowSubtotal;
+                    totalDiscount += rowDiscount;
                 });
-            }
-        },
-        error: function (xhr) {
-            console.log(xhr);
-        },
-    });
 
-});
-</script>
+                let finalTotal = subtotal + tax + shipping;
+
+                // Update the display
+                $('.cart-subtotal').text(`₹${subtotal.toFixed(2)}`);
+                $('.cart-discount').text(`-₹${totalDiscount.toFixed(2)}`);
+                $('.cart-total').text(`₹${finalTotal.toFixed(2)}`);
+            }
+
+            // Store cart quantities in localStorage
+            function storeCartQuantities() {
+                let quantities = {};
+                $('#cartTableBody tr').each(function () {
+                    let productId = $(this).data('product-id');
+                    let quantity = parseInt($(this).find('.quantity__input').val()) || 1;
+                    quantities[productId] = quantity;
+                });
+                localStorage.setItem('cartQuantities', JSON.stringify(quantities));
+            }
+
+            // Call this whenever quantity changes
+            $(document).on('click', '.quantity__plus, .quantity__minus', function () {
+                storeCartQuantities();
+            });
+
+            // Load saved quantities when page loads
+            function loadCartQuantities() {
+                let savedQuantities = JSON.parse(localStorage.getItem('cartQuantities')) || {};
+                $('#cartTableBody tr').each(function () {
+                    let productId = $(this).data('product-id');
+                    if (savedQuantities[productId]) {
+                        $(this).find('.quantity__input').val(savedQuantities[productId]);
+                        updateRowPrice($(this));
+                    }
+                });
+                updateCartTotals();
+            }
+
+            // Call load function after products are loaded
+            setTimeout(loadCartQuantities, 500);
+
+            $(document).on('click', '.remove-tr-btn', function (e) {
+                e.preventDefault();
+                let productId = $(this).data("product-id");
+                let cart = JSON.parse(localStorage.getItem('cart')) || [];
+                cart = cart.filter(id => id != productId);
+                localStorage.setItem('cart', JSON.stringify(cart));
+
+                // Also remove from quantities
+                let quantities = JSON.parse(localStorage.getItem('cartQuantities')) || {};
+                delete quantities[productId];
+                localStorage.setItem('cartQuantities', JSON.stringify(quantities));
+
+                $(this).closest('tr').remove();
+
+                updateCartTotals();
+
+                Swal.fire({
+                    title: 'Product Removed',
+                    text: 'Product removed from cart!',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    willClose: () => {
+                        if ($('#cartTableBody tr').length === 0) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+
+            let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
+            $(".cart-item-count").text(productIdsCart.length);
+
+            let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+            $(".wishlist-item-count").text(productIdsWishlist.length);
+
+            $.ajax({
+                url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
+                type: "get",
+                success: function (response, textStatus, xhr) {
+                    if (response.data && Array.isArray(response.data)) {
+                        const logoItems = response.data.filter(item => item.category === "LOGO");
+                        logoItems.forEach(item => {
+                            let logoSection = $(".logo .link");
+                            logoSection.empty();
+                            logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.log(xhr);
+                },
+            });
+
+        });
+    </script>
 
 
 </body>

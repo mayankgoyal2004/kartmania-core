@@ -539,28 +539,20 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
     <script>
         $(document).ready(function () {
-            let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
-            // Always update count directly
-            $(".cart-item-count").text(productIdsCart.length);
+            let baseUrl = `<?= getenv("BASE_URL") ?>`;
 
+            // Get wishlist from localStorage
             let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-            // Always update count directly
+
+            // Update wishlist count
             $(".wishlist-item-count").text(productIdsWishlist.length);
 
+            // Get cart count
+            let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
+            $(".cart-item-count").text(productIdsCart.length);
 
-            let baseUrl = `<?= getenv("BASE_URL") ?>`;
-            let productIds = JSON.parse(localStorage.getItem('wishlist'));
-
-            if (productIds.length === 0) {
-                Swal.fire({
-                    title: 'Empty Wishlist',
-                    text: 'Your Wishlist is empty. Add some products!',
-                    icon: 'info',
-                    confirmButtonText: 'Shop Now'
-                }).then(() => {
-                    // Redirect to shop page if needed
-                    window.location.href = `${baseUrl}/product`;
-                });
+            if (productIdsWishlist.length === 0) {
+                showEmptyWishlist();
                 return;
             }
 
@@ -570,7 +562,83 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                 return string.toLowerCase().replace(/\s+/g, "-");
             }
 
-            $.when(...productIds.map(id =>
+            // Function to calculate discounted price
+            function calculateDiscountedPrice(originalPrice, discountValue, discountType) {
+                let discountedPrice = originalPrice;
+
+                if (discountValue > 0) {
+                    if (discountType === 'CASH') {
+                        discountedPrice = Math.max(0, originalPrice - discountValue);
+                    } else if (discountType === 'PERCENTAGE') {
+                        discountedPrice = Math.max(0, originalPrice - (originalPrice * discountValue / 100));
+                    }
+                }
+
+                return discountedPrice;
+            }
+
+            // Function to calculate rating
+            function calculateRating(product) {
+                let rating = 0;
+                let reviewCount = 0;
+
+                if (product.reviews && product.reviews.length > 0) {
+                    let totalRating = 0;
+                    let validReviews = 0;
+
+                    product.reviews.forEach(review => {
+                        if (review.rating) {
+                            let ratingValue = 0;
+                            if (typeof review.rating === 'object' && review.rating.value) {
+                                ratingValue = parseFloat(review.rating.value);
+                            } else {
+                                ratingValue = parseFloat(review.rating);
+                            }
+
+                            if (ratingValue > 0) {
+                                totalRating += ratingValue;
+                                validReviews++;
+                            }
+                        }
+                    });
+
+                    if (validReviews > 0) {
+                        rating = totalRating / validReviews;
+                        reviewCount = validReviews;
+                    }
+                }
+
+                // Fallback to popularity if no valid reviews
+                if (rating === 0) {
+                    rating = (product.popularity || 0) / 2;
+                    reviewCount = 0;
+                }
+
+                return {
+                    rating: rating.toFixed(1),
+                    reviewCount: reviewCount
+                };
+            }
+
+            // Function to get stock status
+            function getStockStatus(stock) {
+                return stock > 0 ? 'In Stock' : 'Out of Stock';
+            }
+
+            // Show empty wishlist message
+            function showEmptyWishlist() {
+                $('#wishlistTableBody').html(`
+            <tr>
+                <td colspan="5" class="text-center py-40">
+                    <div class="text-gray-500 text-lg">Your wishlist is empty</div>
+                    <a href="${baseUrl}/product" class="btn btn-main mt-16">Continue Shopping</a>
+                </td>
+            </tr>
+        `);
+            }
+
+            // Load products from API
+            $.when(...productIdsWishlist.map(id =>
                 $.ajax({
                     url: `<?php echo getenv("FETCH_ALL_PRODUCT_API") ?>/${id}`,
                     type: 'GET',
@@ -580,109 +648,134 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                 }).then(response => {
                     if (response.data) {
                         products.push(response.data);
-                        console.log(response.data);
-
                     }
+                }).fail(error => {
+                    console.error(`Failed to fetch product ${id}:`, error);
                 })
             )).then(() => {
-                // Function to populate the table with product data
-                function populateWishlistTable(products) {
-                    let tableBody = $('#wishlistTableBody');
-                    tableBody.empty(); // Clear existing rows
-
-                    products.forEach(product => {
-                        let primaryImageUrl = product.images.find(img => img.isPrimary)?.imageUrl || `${baseUrl}/assets/images/thumbs/product-two-img1.png`;
-                        let rating = product.reviews.length > 0 ? product.reviews[0].rating : 'No reviews';
-
-
-                        let row = `
-                        <tr class="">
-                                        <td class="px-40 py-32 border-end border-neutral-100">
-                                            <button type="button" data-product-id="${product.id}"
-                                                class="remove-tr-btn flex-align gap-12 hover-text-danger-600">
-                                                <i class="ph ph-x-circle text-2xl d-flex"></i>
-                                                Remove
-                                            </button>
-                                        </td>
-                                        <td class="px-40 py-32 border-end border-neutral-100">
-                                            <div class="table-product d-flex align-items-center gap-24">
-                                                <a href="product-details-two.php"
-                                                    class="table-product__thumb border border-gray-100 rounded-8 flex-center ">
-                                                    <img src="assets/images/thumbs/product-two-img1.png" alt="">
-                                                </a>
-                                                <div class="table-product__content text-start">
-
-                                                    <h6 class="title text-lg fw-semibold mb-8">
-                                                        <a href="${baseUrl + '/product/' + makeSlug(product.name)}" class="link text-line-2"
-                                                            tabindex="0">${product.name}</a>
-                                                    </h6>
-
-                                                    <div class="flex-align gap-16 mb-16">
-                                                        <div class="flex-align gap-6">
-                                                            <span class="text-md fw-medium text-warning-600 d-flex"><i
-                                                                    class="ph-fill ph-star"></i></span>
-                                                            <span class="text-md fw-semibold text-gray-900">${rating}</span>
-                                                        </div>
-                                                        <span class="text-sm fw-medium text-gray-200">|</span>
-                                                        <span class="text-neutral-600 text-sm">${product.reviews.length} Reviews</span>
-                                                    </div>
-
-                                                    <div class="flex-align gap-16">
-                                                        <a href="${baseUrl + '/cart'}"
-                                                            class="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium">
-                                                            ${product.category.name}
-                                                        </a>
-                                                        <a href="cart.php"
-                                                            class="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium">
-                                                            ${product.subCategory.name}
-                                                        </a>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-40 py-32 border-end border-neutral-100">
-                                            <span class="text-lg h6 mb-0 fw-semibold">₹${product.price}</span>
-                                        </td>
-                                        <td class="px-40 py-32 border-end border-neutral-100">
-                                            <span class="text-lg h6 mb-0 fw-semibold">In Stock</span>
-                                        </td>
-                                        <td class="px-40 py-32">
-                                            <a href="cart.php" class="btn btn-main-two rounded-8 px-64">
-                                                Add To Cart <i class="ph ph-shopping-cart"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                        `;
-
-                        tableBody.append(row);
-                    });
-
-                    updateCartSubtotal();
-
-                }
-
-                // Call the function to populate the table
                 populateWishlistTable(products);
-
-                if (products.length === 0) {
-                    Swal.fire({
-                        title: 'Empty Cart',
-                        title: 'Error',
-                        text: 'No products found in cart.',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                    return;
-                }
+            }).fail(() => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to load wishlist products.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             });
 
+            // Function to populate the table with product data
+            function populateWishlistTable(products) {
+                let tableBody = $('#wishlistTableBody');
+                tableBody.empty();
+
+                if (products.length === 0) {
+                    showEmptyWishlist();
+                    return;
+                }
+
+                products.forEach(product => {
+                    // Get primary image
+                    let primaryImage = product.images?.find(img => img.isPrimary);
+                    let primaryImageUrl = primaryImage?.imageUrl || `${baseUrl}/assets/images/thumbs/product-two-img1.png`;
+
+                    // Calculate rating
+                    let ratingInfo = calculateRating(product);
+
+                    // Calculate price with discount
+                    let originalPrice = parseFloat(product.price) || 0;
+                    let discountValue = parseFloat(product.discountValue) || 0;
+                    let discountType = (product.discount || '').toUpperCase();
+                    let discountedPrice = calculateDiscountedPrice(originalPrice, discountValue, discountType);
+
+                    // Get stock status
+                    let stockStatus = getStockStatus(product.stock);
+
+                    // Get category and subcategory names safely
+                    let categoryName = product.category?.name || 'Uncategorized';
+                    let subCategoryName = product.subCategory?.name || 'General';
+
+                    let row = `
+                <tr class="" data-product-id="${product.id}">
+                    <td class="px-40 py-32 border-end border-neutral-100">
+                        <button type="button" data-product-id="${product.id}"
+                            class="remove-tr-btn flex-align gap-12 hover-text-danger-600">
+                            <i class="ph ph-x-circle text-2xl d-flex"></i>
+                            Remove
+                        </button>
+                    </td>
+                    <td class="px-40 py-32 border-end border-neutral-100">
+                        <div class="table-product d-flex align-items-center gap-24">
+                            <a href="${baseUrl}/product/${makeSlug(product.name)}"
+                                class="table-product__thumb border border-gray-100 rounded-8 flex-center">
+                                <img src="${primaryImageUrl}" alt="${product.name}" style="width: 80px; height: 80px; object-fit: cover;">
+                            </a>
+                            <div class="table-product__content text-start">
+                                <h6 class="title text-lg fw-semibold mb-8">
+                                    <a href="${baseUrl}/product/${makeSlug(product.name)}" class="link text-line-2"
+                                        tabindex="0">${product.name}</a>
+                                </h6>
+
+                                <div class="flex-align gap-16 mb-16">
+                                    <div class="flex-align gap-6">
+                                        <span class="text-md fw-medium text-warning-600 d-flex">
+                                            <i class="ph-fill ph-star"></i>
+                                        </span>
+                                        <span class="text-md fw-semibold text-gray-900">${ratingInfo.rating}</span>
+                                    </div>
+                                    <span class="text-sm fw-medium text-gray-200">|</span>
+                                    <span class="text-neutral-600 text-sm">${ratingInfo.reviewCount} Reviews</span>
+                                </div>
+
+                                <div class="flex-align gap-16">
+                                    <span class="product-card__cart btn bg-gray-50 text-heading text-sm py-7 px-8 rounded-8 flex-center gap-8 fw-medium">
+                                        ${categoryName}
+                                    </span>
+                                    <span class="product-card__cart btn bg-gray-50 text-heading text-sm py-7 px-8 rounded-8 flex-center gap-8 fw-medium">
+                                        ${subCategoryName}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-40 py-32 border-end border-neutral-100">
+                        ${discountValue > 0 ? `
+                            <div>
+                                <span class="text-lg h6 mb-0 fw-semibold">₹${discountedPrice.toFixed(2)}</span>
+                                <div class="text-sm text-gray-400 text-decoration-line-through">₹${originalPrice.toFixed(2)}</div>
+                            </div>
+                        ` : `
+                            <span class="text-lg h6 mb-0 fw-semibold">₹${originalPrice.toFixed(2)}</span>
+                        `}
+                    </td>
+                    <td class="px-40 py-32 border-end border-neutral-100">
+                        <span class="text-lg h6 mb-0 fw-semibold ${product.stock > 0 ? 'text-success-600' : 'text-danger-600'}">
+                            ${stockStatus}
+                        </span>
+                    </td>
+                    <td class="px-40 py-32">
+                        <button type="button" data-product-id="${product.id}" 
+                            class="btn btn-main-two rounded-8 px-64 add-to-cart-from-wishlist">
+                            Add To Cart <i class="ph ph-shopping-cart"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+
+                    tableBody.append(row);
+                });
+            }
+
+            // Remove from wishlist
             $(document).on('click', '.remove-tr-btn', function (e) {
                 e.preventDefault();
                 let productId = $(this).data("product-id");
                 let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
                 wishlist = wishlist.filter(id => id != productId);
                 localStorage.setItem('wishlist', JSON.stringify(wishlist));
+
+                // Update count
+                $(".wishlist-item-count").text(wishlist.length);
+
                 $(this).closest('tr').remove();
 
                 Swal.fire({
@@ -693,35 +786,64 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                     showConfirmButton: false,
                     timerProgressBar: true,
                     willClose: () => {
-                        window.location.reload();
+                        if ($('#wishlistTableBody tr').length === 0) {
+                            showEmptyWishlist();
+                        }
                     }
                 });
             });
 
+            // Add to cart from wishlist
+            $(document).on('click', '.add-to-cart-from-wishlist', function (e) {
+                e.preventDefault();
+                let productId = $(this).data("product-id");
+
+                // Get existing cart
+                let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+                // Add product to cart if not already present
+                if (!cart.includes(productId)) {
+                    cart.push(productId);
+                    localStorage.setItem('cart', JSON.stringify(cart));
+
+                    // Update cart count
+                    $(".cart-item-count").text(cart.length);
+
+                    Swal.fire({
+                        title: 'Added to Cart',
+                        text: 'Product added to cart successfully!',
+                        icon: 'success',
+                        confirmButtonText: 'Continue Shopping'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Already in Cart',
+                        text: 'This product is already in your cart!',
+                        icon: 'info',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+
+            // Load logo
             $.ajax({
                 url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
                 type: "get",
                 success: function (response, textStatus, xhr) {
-
                     if (response.data && Array.isArray(response.data)) {
                         const logoItems = response.data.filter(item => item.category === "LOGO");
                         logoItems.forEach(item => {
-                            console.log(item.image);
                             let logoSection = $(".logo .link");
                             logoSection.empty();
-
-                            logoSection.append(`
-                            <img src="${item.image}" alt="${item.title}"/>
-                        `);;
+                            logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
                         });
                     }
-
                 },
                 error: function (xhr) {
                     console.log(xhr);
                 },
             });
-        })
+        });
     </script>
 
 

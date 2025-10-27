@@ -1,47 +1,131 @@
 <?php
 session_start();
-// declare(strict_types=1);
 require __DIR__ . "/api/api.php";
-// error_reporting(E_ALL);
-// ini_set("", 1);
 require __DIR__ . "/utils/utils.php";
 
 $utils = new Utils;
 
 $urlPath = $_SERVER['REQUEST_URI'];
-$segments = explode('/', trim($urlPath, '/'));
+// Remove query parameters from URL path
+$urlPathWithoutQuery = strtok($urlPath, '?');
+$segments = explode('/', trim($urlPathWithoutQuery, '/'));
 $slug = end($segments);
 
-// Get current page from URL parameter, default to 1
+// Get filter parameters from URL
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 12; // Default to 12 items per page
+$limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 12;
+$minPrice = isset($_GET['minPrice']) ? (float) $_GET['minPrice'] : 0;
+$maxPrice = isset($_GET['maxPrice']) ? (float) $_GET['maxPrice'] : 15000;
+$size = isset($_GET['size']) ? $_GET['size'] : "";
+$brand = isset($_GET['brand']) ? $_GET['brand'] : "";
+$color = isset($_GET['color']) ? $_GET['color'] : "";
+$sort = isset($_GET['sort']) ? $_GET['sort'] : "popularity";
 
-// api endpoints
-$fetchAllProductByCategoryWithPaginationApi = getenv("FETCH_ALL_PRODUCT_BY_CATEGORY_WITH_PAGINATION_API") . "/$slug" . "?page=" . $page . "&limit=" . $limit;
+// API endpoints
 $fetchAllProductCategoryApi = getenv("FETCH_ALL_PRODUCT_CATEGORY_API");
 $fetchAllBrandApi = getenv("FETCH_ALL_BRAND_API");
 $fetchAllColorApi = getenv("FETCH_ALL_COLOR_API");
 $fetchAllSizeApi = getenv("FETCH_ALL_SIZE_API");
+$fetchProductGraphQl = getenv("GRAPHQL");
 
-$resultProductPagination = $utils->fetchFromApi($fetchAllProductByCategoryWithPaginationApi);
+// Fetch filter options
 $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
 $resultBrands = $utils->fetchFromApi($fetchAllBrandApi);
 $resultColors = $utils->fetchFromApi($fetchAllColorApi);
 $resultSizes = $utils->fetchFromApi($fetchAllSizeApi);
 
-$hasProducts = !empty($resultProductPagination['data']['data']['data']);
-$pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
+// Try to find the actual category name from the slug
+$categoryName = "";
+foreach ($resultProductCategory['data']['data'] as $category) {
+    if ($utils->makeSlug($category['name']) === $slug) {
+        $categoryName = $category['name'];
+        break;
+    }
+}
 
-// echo "<pre>";
-// print_r($resultColors['data']['colors']);
+// Use category name if found, otherwise use slug
+$categoryParam = $categoryName ?: $slug;
 
-// foreach ($resultProductPagination['data']['data']['data']as $key => $value) {
-//     # code...
-//     echo $value['name'];
-// }
-// exit;
+// Build GraphQL query for filtered products by category
+$query = '
+query ProductFilter($category: String, $minPrice: Float, $maxPrice:Float , $size: String, $brand: String,$color:String, $page: Int, $limit: Int, $sortBy: String) {
+  productFilter(
+    category: $category,
+    minPrice: $minPrice,
+    maxPrice: $maxPrice,
+    size: $size,
+    brand: $brand,
+    color: $color,
+    page: $page,
+    limit: $limit,
+    sortBy: $sortBy
+  ) {
+    data {
+      id
+      name
+      price
+      discountValue
+      stock
+      popularity
+      brand {
+        name
+      }
+      category {
+        name
+      }
+      images {
+        isPrimary
+        imageUrl
+      }
+      reviews {
+        rating
+        review
+      }
+      attributes {
+        color
+        size
+      }
+    }
+    pagination {
+      currentPage
+      lastPage
+      total
+      perPage
+      hasNextPage
+      hasPrevPage
+      from
+      to
+    }
+  }
+}';
+// Variables to send
+$variables = [
+    "category" => $categoryParam,
+    "minPrice" => $minPrice,
+    "maxPrice" => $maxPrice,
+    "size" => $size !== "" ? $size : "",
+    "brand" => $brand !== "" ? $brand : "",
+    "color" => $color !== "" ? $color : "",
+    "page" => $page,
+    "limit" => $limit,
+    "sortBy" => $sort 
+];
+
+// Call GraphQL API using your utility function
+$resultGraphQlProduct = $utils->fetchGraphQlFromApi($query, $variables, $fetchProductGraphQl);
+
+
+
+// Decode and check result
+if (isset($resultGraphQlProduct['errors'])) {
+    $_SESSION['error'] = "Error fetching products: " . $resultGraphQlProduct['errors'][0]['message'];
+    $hasProducts = false;
+    $pagination = null;
+} else {
+    $hasProducts = !empty($resultGraphQlProduct['data']['productFilter']['data']);
+    $pagination = $resultGraphQlProduct['data']['productFilter']['pagination'] ?? null;
+}
 ?>
-
 <!DOCTYPE html>
 <html lang="en" class="color-two font-exo header-style-two">
 
@@ -203,90 +287,95 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
                                 <?php endif; ?>
                             </ul>
                         </div>
-                        <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
-                            <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Price</h6>
-                            <div class="custom--range">
-                                <div id="slider-range"></div>
-                                <div class="flex-between flex-wrap-reverse gap-8 mt-24 ">
-                                    <button type="button" class="btn btn-main h-40 flex-align">Filter </button>
-                                    <div class="custom--range__content flex-align gap-8">
-                                        <span class="text-gray-500 text-md flex-shrink-0">Price:</span>
-                                        <input type="text"
-                                            class="custom--range__prices text-neutral-600 text-start text-md fw-medium"
-                                            id="amount" readonly>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                   <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
+    <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Price</h6>
+    <div class="custom--range">
+        <div id="slider-range"></div>
+        <div class="flex-between flex-wrap-reverse gap-8 mt-24 ">
+            <button type="button" class="btn btn-main h-40 flex-align price-filter-btn">Filter</button>
+            <div class="custom--range__content flex-align gap-8">
+                <span class="text-gray-500 text-md flex-shrink-0">Price:</span>
+                <input type="text" class="" id="amount" readonly>
+            </div>
+        </div>
+    </div>
+</div>
 
 
-                        <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
-                            <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Size</h6>
-                            <ul class="max-h-540 overflow-y-auto scroll-sm">
+                      <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
+    <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Size</h6>
+    <ul class="max-h-540 overflow-y-auto scroll-sm">
+        <?php $count = 1; foreach ($resultSizes['data']['sizes'] as $key => $size): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio checked-black">
+                    <input class="form-check-input size-filter" type="radio" name="size" 
+                           id="size<?= $count ?>" data-size="<?= $size['size'] ?>"
+                           <?= (isset($_GET['size']) && $_GET['size'] == $size['size']) ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="size<?= $count ?>"><?= $size['size'] ?></label>
+                </div>
+            </li>
+            <?php $count++; ?>
+        <?php endforeach; ?>
 
-                                <?php foreach ($resultSizes['data']['sizes'] as $key => $size): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio checked-black">
-                                            <input class="form-check-input" type="radio" name="color" id="color1">
-                                            <label class="form-check-label" for="color1"><?= $size ?></label>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
+        <?php if (empty($resultSizes['data']['sizes'])): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio checked-primary">
+                    No size found
+                </div>
+            </li>
+        <?php endif; ?>
+    </ul>
+</div>
 
-                                <?php if (empty($resultSizes)): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio checked-primary">
-                                            No size found
-                                        </div>
-                                    </li>
-                                <?php endif; ?>
-                            </ul>
-                        </div>
+<div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
+    <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Color</h6>
+    <ul class="max-h-540 overflow-y-auto scroll-sm">
+        <?php $count = 1; foreach ($resultColors['data']['colors'] as $key => $color): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio checked-black">
+                    <input class="form-check-input color-filter" type="radio" name="color" 
+                           id="color<?= $count ?>" data-color="<?= $color ?>"
+                           <?= (isset($_GET['color']) && $_GET['color'] == $color) ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="color<?= $count ?>"><?= $color ?></label>
+                </div>
+            </li>
+            <?php $count++; ?>
+        <?php endforeach; ?>
 
-                        <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
-                            <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Color</h6>
-                            <ul class="max-h-540 overflow-y-auto scroll-sm">
-
-                                <?php foreach ($resultColors['data']['colors'] as $key => $colors): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio checked-black">
-                                            <input class="form-check-input" type="radio" name="color" id="color1">
-                                            <label class="form-check-label" for="color1"><?= $colors ?></label>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
-
-                                <?php if (empty($resultColors)): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio checked-primary">
-                                            No color found
-                                        </div>
-                                    </li>
-                                <?php endif; ?>
-                            </ul>
-                        </div>
-                        <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
-                            <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Brand</h6>
-                            <ul class="max-h-540 overflow-y-auto scroll-sm">
-
-                                <?php foreach ($resultBrands['data']['data'] as $key => $brand): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio">
-                                            <input class="form-check-input" type="radio" name="color" id="brand1">
-                                            <label class="form-check-label" for="brand1"> <?= $brand['name'] ?> </label>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
-                                <?php if (empty($resultBrands['data']['data'])): ?>
-                                    <li class="mb-24">
-                                        <div class="form-check common-check common-radio">
-                                            <label class="form-check-label" for="brand1"> No brand found </label>
-                                        </div>
-                                    </li>
-                                <?php endif; ?>
-
-                            </ul>
-                        </div>
+        <?php if (empty($resultColors['data']['colors'])): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio checked-primary">
+                    No color found
+                </div>
+            </li>
+        <?php endif; ?>
+    </ul>
+</div>
+                       
+                  <div class="shop-sidebar__box border border-gray-100 rounded-8 p-32 mb-32">
+    <h6 class="text-xl border-bottom border-gray-100 pb-24 mb-24">Filter by Brand</h6>
+    <ul class="max-h-540 overflow-y-auto scroll-sm">
+        <?php $count = 1; foreach ($resultBrands['data']['data'] as $key => $brand): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio">
+                    <input class="form-check-input brand-filter" type="radio" name="brand" 
+                           id="brand<?= $count ?>" data-brand="<?= $brand['name'] ?>"
+                           <?= (isset($_GET['brand']) && $_GET['brand'] == $brand['name']) ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="brand<?= $count ?>"><?= $brand['name'] ?></label>
+                </div>
+            </li>
+            <?php $count++; ?>
+        <?php endforeach; ?>
+        
+        <?php if (empty($resultBrands['data']['data'])): ?>
+            <li class="mb-24">
+                <div class="form-check common-check common-radio">
+                    <label class="form-check-label">No brand found</label>
+                </div>
+            </li>
+        <?php endif; ?>
+    </ul>
+</div>
                         <div class="shop-sidebar__box rounded-8">
                             <img src="<?= getenv("BASE_URL") . "/assets/" ?>images/thumbs/advertise-img1.png" alt="">
                         </div>
@@ -315,16 +404,15 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
                                     <i class="ph ph-squares-four"></i>
                                 </button>
                             </div>
-                            <div class="position-relative text-gray-500 flex-align gap-4 text-14">
-                                <label for="sorting" class="text-inherit flex-shrink-0">Sort by: </label>
-                                <select class="form-control common-input px-14 py-14 text-inherit rounded-6 w-auto"
-                                    id="sorting">
-                                    <option value="1" selected>Popular</option>
-                                    <option value="1">Latest</option>
-                                    <option value="1">Trending</option>
-                                    <option value="1">Matches</option>
-                                </select>
-                            </div>
+                        <div class="position-relative text-gray-500 flex-align gap-4 text-14">
+    <label for="sorting" class="text-inherit flex-shrink-0">Sort by: </label>
+    <select class="form-control common-input px-14 py-14 text-inherit rounded-6 w-auto" id="sorting">
+        <option value="popularity" <?= (isset($_GET['sort']) && $_GET['sort'] === 'popularity') ? 'selected' : '' ?>>Popular</option>
+        <option value="latest" <?= (isset($_GET['sort']) && $_GET['sort'] === 'latest') ? 'selected' : '' ?>>Latest</option>
+        <option value="priceLowToHigh" <?= (isset($_GET['sort']) && $_GET['sort'] === 'priceLowToHigh') ? 'selected' : '' ?>>Price: Low to High</option>
+        <option value="priceHighToLow" <?= (isset($_GET['sort']) && $_GET['sort'] === 'priceHighToLow') ? 'selected' : '' ?>>Price: High to Low</option>
+    </select>
+</div>
                             <button type="button"
                                 class="w-44 h-44 d-lg-none d-flex flex-center border border-gray-100 rounded-6 text-2xl sidebar-btn"><i
                                     class="ph-bold ph-funnel"></i></button>
@@ -333,11 +421,10 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
                     <!-- Top End -->
 
                     <div class="list-grid-wrapper">
-                        <?php
+                    
 
-
-                        if ($hasProducts):
-                            foreach ($resultProductPagination['data']['data']['data'] as $key => $product):
+<?php if ($hasProducts):
+    foreach ($resultGraphQlProduct['data']['productFilter']['data'] as $key => $product): 
                                 // Find the primary image
                                 $primaryImage = null;
                                 if (!empty($product['images'])) {
@@ -363,15 +450,46 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
                                 $soldPercentage = ($totalStock > 0) ? ($sold / $totalStock) * 100 : 0;
 
                                 // Calculate rating: Use average of review ratings if available, else use popularity
-                                $rating = 0;
-                                if (!empty($product['reviews'])) {
-                                    $totalRating = array_sum(array_column($product['reviews'], 'rating'));
-                                    $rating = $totalRating / count($product['reviews']);
-                                } else {
-                                    $rating = ($product['popularity'] ?? 0) / 2; // Fallback to popularity-based rating
-                                }
-                                ?>
+                              $rating = 0;
+$reviewCount = 0;
 
+if (!empty($product['reviews'])) {
+    $totalRating = 0;
+    $validReviews = 0;
+    
+    foreach ($product['reviews'] as $review) {
+        // Safely extract rating value
+        if (isset($review['rating'])) {
+            if (is_array($review['rating'])) {
+                // If rating is an array, try to get numeric value
+                $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+            } else {
+                // If rating is direct value
+                $ratingValue = floatval($review['rating']);
+            }
+            
+            if ($ratingValue > 0) {
+                $totalRating += $ratingValue;
+                $validReviews++;
+            }
+        }
+    }
+    
+    if ($validReviews > 0) {
+        $rating = $totalRating / $validReviews;
+        $reviewCount = $validReviews;
+    }
+}
+
+// Fallback to popularity if no valid reviews
+if ($rating === 0) {
+    $rating = ($product['popularity'] ?? 0) / 2;
+    $reviewCount = 0; // No actual reviews, just using popularity
+}
+
+// Format rating to 1 decimal place
+$formattedRating = number_format($rating, 1);
+                                ?>
                                 <div
                                     class="product-card h-100 p-16 border border-gray-100 hover-border-main-600 rounded-16 position-relative transition-2">
                                     <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
@@ -392,14 +510,22 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
                                         </h6>
 
                                         <div class="flex-align mb-20 mt-16 gap-6">
-                                            <span class="text-xs fw-medium text-gray-500">
-                                                <?= number_format($rating, 1) ?>
-                                            </span>
-                                            <span class="text-xs fw-medium text-warning-600 d-flex">
-                                                <i class="ph-fill ph-star"></i>
-                                            </span>
-                                            <span class="text-xs fw-medium text-gray-500">(17k)</span>
-                                        </div>
+    <?php if ($reviewCount > 0): ?>
+        <span class="text-xs fw-medium text-gray-500">
+            <?= $formattedRating ?>
+        </span>
+        <span class="text-xs fw-medium text-warning-600 d-flex">
+            <i class="ph-fill ph-star"></i>
+        </span>
+        <span class="text-xs fw-medium text-gray-500">
+            (<?= $reviewCount ?>)
+        </span>
+    <?php else: ?>
+        <span class="text-xs fw-medium text-gray-500">
+            No reviews yet
+        </span>
+    <?php endif; ?>
+</div>
 
                                         <div class="mt-8">
                                             <div class="progress w-100 bg-color-three rounded-pill h-4" role="progressbar"
@@ -638,217 +764,349 @@ $pagination = $resultProductPagination['data']['data']['pagination'] ?? null;
     <!-- main js -->
     <script src="<?= getenv("BASE_URL") . "/assets/" ?>js/main.js"></script>
 
-    <script>
+  <script>
+    $(document).ready(function () {
+        // Initialize price range slider
+        function initializePriceSlider() {
+            // Get current price values from URL or use defaults
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentMinPrice = parseFloat(urlParams.get('minPrice')) || 0;
+            const currentMaxPrice = parseFloat(urlParams.get('maxPrice')) || 15000;
 
-        $(document).ready(function () {
+            $("#slider-range").slider({
+                range: true,
+                min: 0,
+                max: 15000,
+                values: [currentMinPrice, currentMaxPrice],
+                slide: function (event, ui) {
+                    $("#amount").val("₹" + ui.values[0] + " - ₹" + ui.values[1]);
+                }
+            });
 
-            $(document).on("click", ".add-to-cart", function (e) {
-                e.preventDefault();
+            // Set initial display
+            $("#amount").val("₹" + $("#slider-range").slider("values", 0) + 
+                            " - ₹" + $("#slider-range").slider("values", 1));
+        }
 
-                // Get the product ID from data attribute
-                let productId = $(this).data("product-id");
-                console.log('Adding product ID:', productId);
-
-                // Retrieve existing cart from localStorage or initialize empty array
-                let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-                // Add productId to cart if not already present
-                if (productId && !cart.includes(productId)) {
-                    cart.push(productId);
-                    // Save updated cart to localStorage
-                    localStorage.setItem('cart', JSON.stringify(cart));
-                    console.log('Updated cart:', cart);
-
-                    // Show success message using SweetAlert
-                    Swal.fire({
-                        title: 'Added to Cart',
-                        text: 'Product added to cart successfully!',
-                        icon: 'success',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        willClose: () => {
-                            window.location.href = '';
-                        }
-                    });
-
-                } else if (cart.includes(productId)) {
-                    // Show warning if product is already in cart
-                    Swal.fire({
-                        title: 'Already in Cart',
-                        text: 'This product is already in your cart!',
-                        icon: 'info',
-                        confirmButtonText: 'Continue Shopping',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                    });
+        // Apply filters function
+        function applyFilters(newParams = {}) {
+            const url = new URL(window.location);
+            
+            // Update or add parameters
+            Object.keys(newParams).forEach(key => {
+                if (newParams[key]) {
+                    url.searchParams.set(key, newParams[key]);
                 } else {
-                    // Show error if productId is invalid
-                    Swal.fire({
-                        text: 'Unable to add product to cart. Invalid product ID.',
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                    });
+                    url.searchParams.delete(key);
                 }
-
-                // Always update count directly
-
-
             });
+            
+            // Reset to page 1 when applying new filters
+            url.searchParams.set('page', 1);
+            
+            window.location.href = url.toString();
+        }
 
-            $(document).on("click", ".add-to-wishlist", function (e) {
-                e.preventDefault();
+        // Initialize the slider
+        initializePriceSlider();
 
-                // Get the product ID from data attribute
-                let productId = $(this).data("product-id");
-                console.log('Adding product ID:', productId);
-
-
-
-                // Retrieve existing cart from localStorage or initialize empty array
-                let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-
-
-                // Add productId to cart if not already present
-                if (productId && !wishlist.includes(productId)) {
-                    wishlist.push(productId);
-                    // Save updated cart to localStorage
-                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-
-
-                    // Show success message using SweetAlert
-                    Swal.fire({
-                        title: 'Added to Wishlist',
-                        text: 'Product added to wishlist successfully!',
-                        icon: 'success',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                        willClose: () => {
-                            window.location.href = '';
-                        }
-                    });
-
-                } else if (wishlist.includes(productId)) {
-                    // Show warning if product is already in cart
-                    Swal.fire({
-                        title: 'Already in Wishlist',
-                        text: 'This product is already in your wishlist!',
-                        icon: 'info',
-                        confirmButtonText: 'Continue Shopping',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                    });
-                } else {
-                    // Show error if productId is invalid
-                    Swal.fire({
-                        text: 'Unable to add product to wishlist. Invalid product ID.',
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        timerProgressBar: true,
-                    });
-                }
-
-                // Always update count directly
-
-
+        // Handle price filter button click
+        $(document).on("click", ".price-filter-btn", function (e) {
+            e.preventDefault();
+            
+            const minPrice = $("#slider-range").slider("values", 0);
+            const maxPrice = $("#slider-range").slider("values", 1);
+            
+            applyFilters({
+                minPrice: minPrice,
+                maxPrice: maxPrice
             });
-
-
-            let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
-            // Always update count directly
-            $(".cart-item-count").text(productIdsCart.length);
-
-            let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
-            // Always update count directly
-            $(".wishlist-item-count").text(productIdsWishlist.length);
-
-            $.ajax({
-                url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
-                type: "get",
-                success: function (response, textStatus, xhr) {
-
-                    if (response.data && Array.isArray(response.data)) {
-                        const logoItems = response.data.filter(item => item.category === "LOGO");
-                        logoItems.forEach(item => {
-                            let logoSection = $(".logo .link");
-                            logoSection.empty();
-
-                            logoSection.append(`
-                            <img src="${item.image}" alt="${item.title}"/>
-                        `);;
-                        });
-                    }
-
-                },
-                error: function (xhr) {
-                    console.log(xhr);
-                },
-            });
-
-
-            const getPathSegments = () => {
-                const path = window.location.pathname;
-                const segments = path.split('/').filter(segment => segment !== '');
-                return segments;
-            };
-
-            const getCategorySlug = () => {
-                const segments = getPathSegments();
-
-                // Find the index of 'category' and get the next segment
-                const categoryIndex = segments.indexOf('category');
-                if (categoryIndex !== -1 && segments[categoryIndex + 1]) {
-                    return segments[categoryIndex + 1];
-                }
-                return null;
-            };
-
-            const categorySlug = getCategorySlug();
-            console.log(categorySlug); // Returns "women"
-            const query = `
-                    query {
-                    products {
-                        id
-                        name
-                        price
-                        stock
-                        groupId
-                        category {
-                        id
-                        name
-                        }
-                        subCategory {
-                        id
-                        name
-                        }
-                    }
-                    }
-                    `;
-
-            const response = fetch("<?= getenv("GRAPHQL") ?>", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ query }),
-            })
-                .then((res) => res.json())
-                .then((data) => console.log(data))
-                .catch((err) => console.error(err));
-
-
-
         });
 
-    </script>
+        // Handle size filter
+        $(document).on("change", ".size-filter", function (e) {
+            const size = $(this).data("size");
+            applyFilters({ size: size });
+        });
+
+        // Handle color filter
+        $(document).on("change", ".color-filter", function (e) {
+            const color = $(this).data("color");
+            applyFilters({ color: color });
+        });
+
+        // Handle brand filter
+        $(document).on("change", ".brand-filter", function (e) {
+            const brand = $(this).data("brand");
+            applyFilters({ brand: brand });
+        });
+
+        // Clear all filters
+        $(document).on("click", ".clear-filters", function (e) {
+            e.preventDefault();
+            const url = new URL(window.location);
+            // Keep only the essential parameters
+            const newUrl = `${url.origin}${url.pathname}?page=1&limit=12`;
+            window.location.href = newUrl;
+        });
+
+        // Your existing cart/wishlist functionality
+        $(document).on("click", ".add-to-cart", function (e) {
+            e.preventDefault();
+            let productId = $(this).data("product-id");
+            console.log('Adding product ID:', productId);
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+            if (productId && !cart.includes(productId)) {
+                cart.push(productId);
+                localStorage.setItem('cart', JSON.stringify(cart));
+                
+                Swal.fire({
+                    title: 'Added to Cart',
+                    text: 'Product added to cart successfully!',
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                });
+            } else if (cart.includes(productId)) {
+                Swal.fire({
+                    title: 'Already in Cart',
+                    text: 'This product is already in your cart!',
+                    icon: 'info',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                });
+            }
+
+            $(".cart-item-count").text(cart.length);
+        });
+
+        $(document).on("click", ".add-to-wishlist", function (e) {
+            e.preventDefault();
+            let productId = $(this).data("product-id");
+            let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+
+            if (productId && !wishlist.includes(productId)) {
+                wishlist.push(productId);
+                localStorage.setItem('wishlist', JSON.stringify(wishlist));
+                
+                Swal.fire({
+                    title: 'Added to Wishlist',
+                    text: 'Product added to wishlist successfully!',
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                });
+            }
+
+            $(".wishlist-item-count").text(wishlist.length);
+        });
+
+        // Initialize cart counts
+        let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
+        $(".cart-item-count").text(productIdsCart.length);
+
+        let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        $(".wishlist-item-count").text(productIdsWishlist.length);
+
+        // Logo fetch
+        $.ajax({
+            url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
+            type: "get",
+            success: function (response, textStatus, xhr) {
+                if (response.data && Array.isArray(response.data)) {
+                    const logoItems = response.data.filter(item => item.category === "LOGO");
+                    logoItems.forEach(item => {
+                        let logoSection = $(".logo .link");
+                        logoSection.empty();
+                        logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
+                    });
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr);
+            },
+        });
+    });
+
+    $(document).ready(function () {
+    // Initialize price range slider
+    function initializePriceSlider() {
+        // Get current price values from URL or use defaults
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentMinPrice = parseFloat(urlParams.get('minPrice')) || 0;
+        const currentMaxPrice = parseFloat(urlParams.get('maxPrice')) || 15000;
+
+        $("#slider-range").slider({
+            range: true,
+            min: 0,
+            max: 15000,
+            values: [currentMinPrice, currentMaxPrice],
+            slide: function (event, ui) {
+                $("#amount").val("₹" + ui.values[0] + " - ₹" + ui.values[1]);
+            }
+        });
+
+        // Set initial display
+        $("#amount").val("₹" + $("#slider-range").slider("values", 0) + 
+                        " - ₹" + $("#slider-range").slider("values", 1));
+    }
+
+    // Apply filters function
+    function applyFilters(newParams = {}) {
+        const url = new URL(window.location);
+        
+        // Update or add parameters
+        Object.keys(newParams).forEach(key => {
+            if (newParams[key]) {
+                url.searchParams.set(key, newParams[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+        
+        // Reset to page 1 when applying new filters
+        url.searchParams.set('page', 1);
+        
+        window.location.href = url.toString();
+    }
+
+    // Handle sorting change
+    $(document).on("change", "#sorting", function (e) {
+        const sortValue = $(this).val();
+        applyFilters({ sort: sortValue });
+    });
+
+    // Initialize the slider
+    initializePriceSlider();
+
+    // Handle price filter button click
+    $(document).on("click", ".price-filter-btn", function (e) {
+        e.preventDefault();
+        
+        const minPrice = $("#slider-range").slider("values", 0);
+        const maxPrice = $("#slider-range").slider("values", 1);
+        
+        applyFilters({
+            minPrice: minPrice,
+            maxPrice: maxPrice
+        });
+    });
+
+    // Handle size filter
+    $(document).on("change", ".size-filter", function (e) {
+        const size = $(this).data("size");
+        applyFilters({ size: size });
+    });
+
+    // Handle color filter
+    $(document).on("change", ".color-filter", function (e) {
+        const color = $(this).data("color");
+        applyFilters({ color: color });
+    });
+
+    // Handle brand filter
+    $(document).on("change", ".brand-filter", function (e) {
+        const brand = $(this).data("brand");
+        applyFilters({ brand: brand });
+    });
+
+    // Clear all filters
+    $(document).on("click", ".clear-filters", function (e) {
+        e.preventDefault();
+        const url = new URL(window.location);
+        // Keep only the essential parameters
+        const newUrl = `${url.origin}${url.pathname}?page=1&limit=12`;
+        window.location.href = newUrl;
+    });
+
+    // Your existing cart/wishlist functionality
+    $(document).on("click", ".add-to-cart", function (e) {
+        e.preventDefault();
+        let productId = $(this).data("product-id");
+        console.log('Adding product ID:', productId);
+
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        if (productId && !cart.includes(productId)) {
+            cart.push(productId);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            
+            Swal.fire({
+                title: 'Added to Cart',
+                text: 'Product added to cart successfully!',
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+            });
+        } else if (cart.includes(productId)) {
+            Swal.fire({
+                title: 'Already in Cart',
+                text: 'This product is already in your cart!',
+                icon: 'info',
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+            });
+        }
+
+        $(".cart-item-count").text(cart.length);
+    });
+
+    $(document).on("click", ".add-to-wishlist", function (e) {
+        e.preventDefault();
+        let productId = $(this).data("product-id");
+        let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+
+        if (productId && !wishlist.includes(productId)) {
+            wishlist.push(productId);
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            
+            Swal.fire({
+                title: 'Added to Wishlist',
+                text: 'Product added to wishlist successfully!',
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+            });
+        }
+
+        $(".wishlist-item-count").text(wishlist.length);
+    });
+
+    // Initialize cart counts
+    let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
+    $(".cart-item-count").text(productIdsCart.length);
+
+    let productIdsWishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    $(".wishlist-item-count").text(productIdsWishlist.length);
+
+    // Logo fetch
+    $.ajax({
+        url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
+        type: "get",
+        success: function (response, textStatus, xhr) {
+            if (response.data && Array.isArray(response.data)) {
+                const logoItems = response.data.filter(item => item.category === "LOGO");
+                logoItems.forEach(item => {
+                    let logoSection = $(".logo .link");
+                    logoSection.empty();
+                    logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
+                });
+            }
+        },
+        error: function (xhr) {
+            console.log(xhr);
+        },
+    });
+});
+</script>
 
 
 

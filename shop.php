@@ -25,6 +25,7 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
 
 
 // Get query parameters from URL
+// Get query parameters from URL
 $category = isset($_GET['category']) ? $_GET['category'] : "";
 $minPrice = isset($_GET['minPrice']) ? (float) $_GET['minPrice'] : 0;
 $maxPrice = isset($_GET['maxPrice']) ? (float) $_GET['maxPrice'] : 15000;
@@ -33,10 +34,11 @@ $brand = isset($_GET['brand']) ? $_GET['brand'] : "";
 $color = isset($_GET['color']) ? $_GET['color'] : "";
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 12;
+$sort = isset($_GET['sort']) ? $_GET['sort'] : "popularity";
 
 // Build GraphQL query dynamically
 $query = '
-query ProductFilter($category: String, $minPrice: Float, $maxPrice:Float , $size: String, $brand: String,$color:String, $page: Int, $limit: Int) {
+query ProductFilter($category: String, $minPrice: Float, $maxPrice:Float , $size: String, $brand: String,$color:String, $page: Int, $limit: Int, $sortBy: String) {
   productFilter(
     category: $category,
     minPrice: $minPrice,
@@ -45,7 +47,8 @@ query ProductFilter($category: String, $minPrice: Float, $maxPrice:Float , $size
     brand: $brand,
     color: $color,
     page: $page,
-    limit: $limit
+    limit: $limit,
+    sortBy: $sortBy
   ) {
     data {
       id
@@ -86,6 +89,25 @@ query ProductFilter($category: String, $minPrice: Float, $maxPrice:Float , $size
   }
 }';
 
+// Handle sorting based on the selected option
+$sortBy = "";
+switch($sort) {
+    case "popularity":
+        $sortBy = "popularity";
+        break;
+    case "latest":
+        $sortBy = "latest";
+        break;
+    case "priceLowToHigh":
+        $sortBy = "priceLowToHigh";
+        break;
+    case "priceHighToLow":
+        $sortBy = "priceHighToLow";
+        break;
+    default:
+        $sortBy = "popularity";
+}
+
 // Variables to send
 $variables = [
     "category" => $category !== "" ? $category : "",
@@ -95,7 +117,8 @@ $variables = [
     "brand" => $brand !== "" ? $brand : "",
     "color" => $color !== "" ? $color : "",
     "page" => $page,
-    "limit" => $limit
+    "limit" => $limit,
+    "sortBy" => $sortBy
 ];
 
 // Call GraphQL API using your utility function
@@ -458,12 +481,14 @@ if (isset($resultGraphQlProduct['errors'])) {
                             </div>
                             <div class="position-relative text-gray-500 flex-align gap-4 text-14">
                                 <label for="sorting" class="text-inherit flex-shrink-0">Sort by: </label>
-                                <select class="form-control common-input px-14 py-14 text-inherit rounded-6 w-auto"
+                                <select class="form-control common-input px-14 py-14 text-inherit rounded-06 w-auto"
                                     id="sorting">
-                                    <option value="1" selected>Popular</option>
-                                    <option value="1">Latest</option>
-                                    <option value="1">Trending</option>
-                                    <option value="1">Matches</option>
+                                    <option value="popularity" <?= (isset($_GET['sort']) && $_GET['sort'] === 'popularity') ? 'selected' : '' ?>>Popular</option>
+                                    <option value="latest" <?= (isset($_GET['sort']) && $_GET['sort'] === 'latest') ? 'selected' : '' ?>>Latest</option>
+                                    <option value="priceLowToHigh" <?= (isset($_GET['sort']) && $_GET['sort'] === 'priceLowToHigh') ? 'selected' : '' ?>>Price: Low to High
+                                    </option>
+                                    <option value="priceHighToLow" <?= (isset($_GET['sort']) && $_GET['sort'] === 'priceHighToLow') ? 'selected' : '' ?>>Price: High to Low
+                                    </option>
                                 </select>
                             </div>
                             <button type="button"
@@ -502,46 +527,46 @@ if (isset($resultGraphQlProduct['errors'])) {
                                 $soldPercentage = ($totalStock > 0) ? ($sold / $totalStock) * 100 : 0;
 
                                 // Calculate rating: Use average of review ratings if available, else use popularity
-                              // Calculate rating safely
-$rating = 0;
-$reviewCount = 0;
+                                // Calculate rating safely
+                                $rating = 0;
+                                $reviewCount = 0;
 
-if (!empty($product['reviews'])) {
-    $totalRating = 0;
-    $validReviews = 0;
-    
-    foreach ($product['reviews'] as $review) {
-        // Safely extract rating value
-        if (isset($review['rating'])) {
-            if (is_array($review['rating'])) {
-                // If rating is an array, try to get numeric value
-                $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
-            } else {
-                // If rating is direct value
-                $ratingValue = floatval($review['rating']);
-            }
-            
-            if ($ratingValue > 0) {
-                $totalRating += $ratingValue;
-                $validReviews++;
-            }
-        }
-    }
-    
-    if ($validReviews > 0) {
-        $rating = $totalRating / $validReviews;
-        $reviewCount = $validReviews;
-    }
-}
+                                if (!empty($product['reviews'])) {
+                                    $totalRating = 0;
+                                    $validReviews = 0;
 
-// Fallback to popularity if no valid reviews
-if ($rating === 0) {
-    $rating = ($product['popularity'] ?? 0) / 2;
-    $reviewCount = 0; // No actual reviews, just using popularity
-}
+                                    foreach ($product['reviews'] as $review) {
+                                        // Safely extract rating value
+                                        if (isset($review['rating'])) {
+                                            if (is_array($review['rating'])) {
+                                                // If rating is an array, try to get numeric value
+                                                $ratingValue = isset($review['rating']['value']) ? floatval($review['rating']['value']) : 0;
+                                            } else {
+                                                // If rating is direct value
+                                                $ratingValue = floatval($review['rating']);
+                                            }
 
-// Format rating to 1 decimal place
-$formattedRating = number_format($rating, 1);
+                                            if ($ratingValue > 0) {
+                                                $totalRating += $ratingValue;
+                                                $validReviews++;
+                                            }
+                                        }
+                                    }
+
+                                    if ($validReviews > 0) {
+                                        $rating = $totalRating / $validReviews;
+                                        $reviewCount = $validReviews;
+                                    }
+                                }
+
+                                // Fallback to popularity if no valid reviews
+                                if ($rating === 0) {
+                                    $rating = ($product['popularity'] ?? 0) / 2;
+                                    $reviewCount = 0; // No actual reviews, just using popularity
+                                }
+
+                                // Format rating to 1 decimal place
+                                $formattedRating = number_format($rating, 1);
                                 ?>
 
                                 <div
@@ -563,23 +588,23 @@ $formattedRating = number_format($rating, 1);
                                                 tabindex="0"><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></a>
                                         </h6>
 
-                                       <div class="flex-align mb-20 mt-16 gap-6">
-    <?php if ($reviewCount > 0): ?>
-        <span class="text-xs fw-medium text-gray-500">
-            <?= $formattedRating ?>
-        </span>
-        <span class="text-xs fw-medium text-warning-600 d-flex">
-            <i class="ph-fill ph-star"></i>
-        </span>
-        <span class="text-xs fw-medium text-gray-500">
-            (<?= $reviewCount ?>)
-        </span>
-    <?php else: ?>
-        <span class="text-xs fw-medium text-gray-500">
-            No reviews yet
-        </span>
-    <?php endif; ?>
-</div>
+                                        <div class="flex-align mb-20 mt-16 gap-6">
+                                            <?php if ($reviewCount > 0): ?>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    <?= $formattedRating ?>
+                                                </span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex">
+                                                    <i class="ph-fill ph-star"></i>
+                                                </span>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    (<?= $reviewCount ?>)
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-xs fw-medium text-gray-500">
+                                                    No reviews yet
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
 
                                         <div class="mt-8">
                                             <div class="progress w-100 bg-color-three rounded-pill h-4" role="progressbar"
@@ -1014,6 +1039,175 @@ $formattedRating = number_format($rating, 1);
         })
 
 
+
+        $(document).ready(function () {
+            // Initialize price range slider
+            function initializePriceSlider() {
+                // Get current price values from URL or use defaults
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentMinPrice = parseFloat(urlParams.get('minPrice')) || 0;
+                const currentMaxPrice = parseFloat(urlParams.get('maxPrice')) || 15000;
+
+                $("#slider-range").slider({
+                    range: true,
+                    min: 0,
+                    max: 15000,
+                    values: [currentMinPrice, currentMaxPrice],
+                    slide: function (event, ui) {
+                        $("#amount").val("₹" + ui.values[0] + " - ₹" + ui.values[1]);
+                    },
+                    change: function (event, ui) {
+                        // Optional: Auto-apply filter on change
+                        // applyPriceFilter(ui.values[0], ui.values[1]);
+                    }
+                });
+
+                // Set initial display
+                $("#amount").val("₹" + $("#slider-range").slider("values", 0) +
+                    " - ₹" + $("#slider-range").slider("values", 1));
+            }
+
+            // Apply price filter function
+            function applyPriceFilter(minPrice, maxPrice) {
+                const url = new URL(window.location);
+
+                // Update or add price parameters
+                url.searchParams.set('minPrice', minPrice);
+                url.searchParams.set('maxPrice', maxPrice);
+
+                // Reset to page 1 when applying new filters
+                url.searchParams.set('page', 1);
+
+                window.location.href = url.toString();
+            }
+
+            // Initialize the slider
+            initializePriceSlider();
+
+            // Handle filter button click
+            $(document).on("click", ".btn.btn-main", function (e) {
+                e.preventDefault();
+
+                // Get current price range from slider
+                const minPrice = $("#slider-range").slider("values", 0);
+                const maxPrice = $("#slider-range").slider("values", 1);
+
+                applyPriceFilter(minPrice, maxPrice);
+            });
+
+            // Your existing code for other filters...
+            $(document).on("change", ".size-filter", function (e) {
+                let size = $(this).data("size");
+                updateUrlParameter('size', size);
+            });
+
+            $(document).on("change", ".color-filter", function (e) {
+                let color = $(this).data("color");
+                updateUrlParameter('color', color);
+            });
+
+            $(document).on("change", ".brand-filter", function (e) {
+                let brand = $(this).data("brand");
+                updateUrlParameter('brand', brand);
+            });
+
+            // Helper function to update URL parameters
+            function updateUrlParameter(key, value) {
+                const url = new URL(window.location);
+
+                if (value) {
+                    url.searchParams.set(key, value);
+                } else {
+                    url.searchParams.delete(key);
+                }
+
+                // Reset to page 1 when applying new filters
+                url.searchParams.set('page', 1);
+
+                window.location.href = url.toString();
+            }
+        });
+
+        $(document).ready(function () {
+    // Handle sorting change
+    $(document).on("change", "#sorting", function (e) {
+        const sortValue = $(this).val();
+        updateUrlParameter('sort', sortValue);
+    });
+
+    // Helper function to update URL parameters
+    function updateUrlParameter(key, value) {
+        const url = new URL(window.location);
+
+        if (value) {
+            url.searchParams.set(key, value);
+        } else {
+            url.searchParams.delete(key);
+        }
+
+        // Reset to page 1 when applying new filters/sorting
+        url.searchParams.set('page', 1);
+
+        window.location.href = url.toString();
+    }
+
+    // Your existing price slider and filter code...
+    function initializePriceSlider() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentMinPrice = parseFloat(urlParams.get('minPrice')) || 0;
+        const currentMaxPrice = parseFloat(urlParams.get('maxPrice')) || 15000;
+
+        $("#slider-range").slider({
+            range: true,
+            min: 0,
+            max: 15000,
+            values: [currentMinPrice, currentMaxPrice],
+            slide: function (event, ui) {
+                $("#amount").val("₹" + ui.values[0] + " - ₹" + ui.values[1]);
+            }
+        });
+
+        $("#amount").val("₹" + $("#slider-range").slider("values", 0) +
+            " - ₹" + $("#slider-range").slider("values", 1));
+    }
+
+    // Apply price filter function
+    function applyPriceFilter(minPrice, maxPrice) {
+        const url = new URL(window.location);
+        url.searchParams.set('minPrice', minPrice);
+        url.searchParams.set('maxPrice', maxPrice);
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+
+    // Initialize the slider
+    initializePriceSlider();
+
+    // Handle filter button click
+    $(document).on("click", ".btn.btn-main", function (e) {
+        e.preventDefault();
+        const minPrice = $("#slider-range").slider("values", 0);
+        const maxPrice = $("#slider-range").slider("values", 1);
+        applyPriceFilter(minPrice, maxPrice);
+    });
+
+    // Your existing filter handlers
+    $(document).on("change", ".size-filter", function (e) {
+        let size = $(this).data("size");
+        updateUrlParameter('size', size);
+    });
+
+    $(document).on("change", ".color-filter", function (e) {
+        let color = $(this).data("color");
+        updateUrlParameter('color', color);
+    });
+
+    $(document).on("change", ".brand-filter", function (e) {
+        let brand = $(this).data("brand");
+        updateUrlParameter('brand', brand);
+    });
+});
+
     </script>
 
 
@@ -1021,40 +1215,3 @@ $formattedRating = number_format($rating, 1);
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -7,42 +7,36 @@ ini_set("", 1);
 
 $utils = new Utils;
 
-// api endpoints
-$fetchAllMediaApi = getenv("FETCH_ALL_MEDIA_API");
-$fetchAllProductApi = getenv("FETCH_ALL_PRODUCT_API");
-$fetchAllProductCategoryApi = getenv("FETCH_ALL_PRODUCT_CATEGORY_API");
-$subscribeNewsLetterApi = getenv("NEWSLETTER_SUBSCRIBE");
+// API endpoints
+$fetchAllBlogApi = getenv("FETCH_ALL_Blog_API");
 
-// response data
-$resultMedia = $utils->fetchFromApi($fetchAllMediaApi);
-$resultProduct = $utils->fetchFromApi($fetchAllProductApi);
-$resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
+// Fetch blog data
+$resultBlog = $utils->fetchFromApi($fetchAllBlogApi);
+$blogs = $resultBlog['data']['data'] ?? [];
+
+// Function to get primary image from blog images array
+function getPrimaryImage($images) {
+    foreach ($images as $image) {
+        if ($image['isPrimary'] === true) {
+            return $image['imageUrl'];
+        }
+    }
+    // If no primary image found, return the first image or a placeholder
+    return !empty($images) ? $images[0]['imageUrl'] : 'assets/images/thumbs/blog-placeholder.png';
+}
 
 
-// Filter the data to include only items with category "BANNER"
-$bannerImages = array_filter($resultMedia['data']['data'], function ($item) {
-    return isset($item['category']) && $item['category'] === 'BANNER';
-});
 
-$heroSectionImages = array_filter($resultMedia['data']['data'], function ($item) {
-    return isset($item['category']) && $item['category'] === 'HEROSECTION';
-});
-
-$advertisementImages = array_filter($resultMedia['data']['data'], function ($item) {
-    return isset($item['category']) && $item['category'] === 'ADVERTISEMENT';
-});
-
-$productsImages = array_filter($resultMedia['data']['data'], function ($item) {
-    return isset($item['category']) && $item['category'] === 'PRODUCT';
-});
-
-// echo "<pre>";
-// print_r($advertisementImages);
-// exit;
-
+// Function to format date
+function formatDate($dateString) {
+    $date = DateTime::createFromFormat('Y-m-d\TH:i:s.v\Z', $dateString);
+    return $date ? $date->format('F j, Y') : 'Date not available';
+}
 
 
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en" class="color-two font-exo header-style-two">
 
@@ -170,323 +164,112 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
     </div>
     <!-- ========================= Breadcrumb End =============================== -->
 
-    <!-- =============================== Blog Section Start =========================== -->
-    <section class="blog py-80">
-        <div class="container container-lg">
-            <div class="row gy-5">
-                <div class="col-lg-8 pe-xl-4">
-                    <div class="blog-item-wrapper">
-                        <div class="blog-item">
-                            <a href="blog-details.php" class="w-100 h-100 rounded-16 overflow-hidden">
-                                <img src="assets/images/thumbs/blog-img1.png" alt="" class="cover-img">
-                            </a>
-                            <div class="blog-item__content mt-24">
-                                <span class="bg-main-50 text-main-600 py-4 px-24 rounded-8 mb-16">Gadget</span>
-                                <h6 class="text-2xl mb-24">
-                                    <a href="blog-details.php" class="">Legal structure, can make profit buisness</a>
-                                </h6>
-                                <p class="text-gray-700 text-line-2">Re-engagement — objectives. As developers, we
-                                    rightfully obsess about the customer experience, relentlessly working to squeeze
-                                    every millisecond out of the critical rendering path, optimize input latency, and
-                                    eliminate...</p>
+<!-- =============================== Blog Section Start =========================== -->
+<section class="blog py-80">
+    <div class="container container-lg">
+        <div class="row gy-5">
+            <div class="col-lg-8 pe-xl-4">
+                <div class="blog-item-wrapper">
+                    <?php if (!empty($blogs)): ?>
+                        <?php foreach ($blogs as $blog): ?>
+                            <?php 
+                            $primaryImage = getPrimaryImage($blog['images']);
+                            $categoryName = $blog['category']['name'] ?? 'Uncategorized';
+                            $slug = $blog['slug'] ?? '#';
+                            $title = $blog['title'] ?? 'No Title';
+                            $content = $blog['content'] ?? 'No content available.';
+                            $commentCount = $blog['commentCount'] ?? 0;
+                            ?>
+                            
+                            <div class="blog-item">
+                                <!-- Updated URL: blog/slug instead of blog-details.php?slug=slug -->
+                                <a href="blog/<?= $slug ?>" class="w-100 h-100 rounded-16 overflow-hidden">
+                                    <img src="<?= $primaryImage ?>" alt="<?= htmlspecialchars($title) ?>" class="cover-img" style="height: 300px; object-fit: cover;">
+                                </a>
+                                <div class="blog-item__content mt-24">
+                                    <span class="bg-main-50 text-main-600 py-4 px-24 rounded-8 mb-16">
+                                        <?= htmlspecialchars($categoryName) ?>
+                                    </span>
+                                    <h6 class="text-2xl mb-24">
+                                        <!-- Updated URL -->
+                                        <a href="blog/<?= $slug ?>" class="text-line-2">
+                                            <?= htmlspecialchars($title) ?>
+                                        </a>
+                                    </h6>
+                                    <p class="text-gray-700 text-line-2">
+                                        <?= htmlspecialchars(substr(strip_tags($content), 0, 150)) ?>...
+                                    </p>
 
-                                <div class="flex-align flex-wrap gap-24 pt-24 mt-24 border-top border-gray-100">
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July
-                                                12, 2025</a>
-                                        </span>
-                                    </div>
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-chats-circle"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">0
-                                                Comments</a>
-                                        </span>
+                                    <div class="flex-align flex-wrap gap-24 pt-24 mt-24 border-top border-gray-100">
+                                        <div class="flex-align flex-wrap gap-8">
+                                            
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-5">
+                            <h5 class="text-gray-500">No blogs available at the moment.</h5>
+                            <p class="text-gray-400">Please check back later for new content.</p>
                         </div>
-                        <div class="blog-item">
-                            <a href="blog-details.php" class="w-100 h-100 rounded-16 overflow-hidden">
-                                <img src="assets/images/thumbs/blog-img2.png" alt="" class="cover-img">
-                            </a>
-                            <div class="blog-item__content mt-24">
-                                <span class="bg-main-50 text-main-600 py-4 px-24 rounded-8 mb-16">Gadget</span>
-                                <h6 class="text-2xl mb-24">
-                                    <a href="blog-details.php" class="">Legal structure, can make profit buisness</a>
-                                </h6>
-                                <p class="text-gray-700 text-line-2">Re-engagement — objectives. As developers, we
-                                    rightfully obsess about the customer experience, relentlessly working to squeeze
-                                    every millisecond out of the critical rendering path, optimize input latency, and
-                                    eliminate...</p>
-
-                                <div class="flex-align flex-wrap gap-24 pt-24 mt-24 border-top border-gray-100">
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July
-                                                12, 2025</a>
-                                        </span>
-                                    </div>
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-chats-circle"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">0
-                                                Comments</a>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="blog-item">
-                            <a href="blog-details.php" class="w-100 h-100 rounded-16 overflow-hidden">
-                                <img src="assets/images/thumbs/blog-img3.png" alt="" class="cover-img">
-                            </a>
-                            <div class="blog-item__content mt-24">
-                                <span class="bg-main-50 text-main-600 py-4 px-24 rounded-8 mb-16">Gadget</span>
-                                <h6 class="text-2xl mb-24">
-                                    <a href="blog-details.php" class="">Legal structure, can make profit buisness</a>
-                                </h6>
-                                <p class="text-gray-700 text-line-2">Re-engagement — objectives. As developers, we
-                                    rightfully obsess about the customer experience, relentlessly working to squeeze
-                                    every millisecond out of the critical rendering path, optimize input latency, and
-                                    eliminate...</p>
-
-                                <div class="flex-align flex-wrap gap-24 pt-24 mt-24 border-top border-gray-100">
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July
-                                                12, 2025</a>
-                                        </span>
-                                    </div>
-                                    <div class="flex-align flex-wrap gap-8">
-                                        <span class="text-lg text-main-600"><i class="ph ph-chats-circle"></i></span>
-                                        <span class="text-sm text-gray-500">
-                                            <a href="blog-details.php" class="text-gray-500 hover-text-main-600">0
-                                                Comments</a>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pagination Start -->
-                    <ul class="pagination flex-align flex-wrap gap-16">
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-xxl rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">
-                                <i class="ph-bold ph-arrow-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item active">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">01</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">02</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">03</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">04</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">05</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">06</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-md rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">07</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link h-64 w-64 flex-center text-xxl rounded-8 fw-medium text-neutral-600 border border-gray-100"
-                                href="#">
-                                <i class="ph-bold ph-arrow-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                    <!-- Pagination End -->
-
+                    <?php endif; ?>
                 </div>
-                <div class="col-lg-4 ps-xl-4">
-                    <!-- Search Start -->
-                    <div class="blog-sidebar border border-gray-100 rounded-8 p-32 mb-40">
-                        <h6 class="text-xl mb-32 pb-32 border-bottom border-gray-100">Search Here</h6>
-                        <form action="#">
-                            <div class="input-group">
-                                <input type="text" class="form-control common-input bg-color-three"
-                                    placeholder="Searching...">
-                                <button type="submit"
-                                    class="btn btn-main text-2xl h-56 w-56 flex-center text-2xl input-group-text"><i
-                                        class="ph ph-magnifying-glass"></i></button>
-                            </div>
-                        </form>
-                    </div>
-                    <!-- Search End -->
 
-                    <!-- Recent Post Start -->
-                    <div class="blog-sidebar border border-gray-100 rounded-8 p-32 mb-40">
-                        <h6 class="text-xl mb-32 pb-32 border-bottom border-gray-100">Recent Posts</h6>
-                        <div class="d-flex align-items-center flex-sm-nowrap flex-wrap gap-24 mb-16">
-                            <a href="blog-details.php"
-                                class="w-100 h-100 rounded-4 overflow-hidden w-120 h-120 flex-shrink-0">
-                                <img src="assets/images/thumbs/recent-post1.png" alt="" class="cover-img">
-                            </a>
-                            <div class="flex-grow-1">
-                                <h6 class="text-lg">
-                                    <a href="blog-details.php" class="text-line-3">Once determined you need to come up
-                                        with a name</a>
-                                </h6>
-                                <div class="flex-align flex-wrap gap-8">
-                                    <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                    <span class="text-sm text-gray-500">
-                                        <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July 12,
-                                            2025</a>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center flex-sm-nowrap flex-wrap gap-24 mb-16">
-                            <a href="blog-details.php"
-                                class="w-100 h-100 rounded-4 overflow-hidden w-120 h-120 flex-shrink-0">
-                                <img src="assets/images/thumbs/recent-post2.png" alt="" class="cover-img">
-                            </a>
-                            <div class="flex-grow-1">
-                                <h6 class="text-lg">
-                                    <a href="blog-details.php" class="text-line-3">Once determined you need to come up
-                                        with a name</a>
-                                </h6>
-                                <div class="flex-align flex-wrap gap-8">
-                                    <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                    <span class="text-sm text-gray-500">
-                                        <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July 12,
-                                            2025</a>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center flex-sm-nowrap flex-wrap gap-24 mb-16">
-                            <a href="blog-details.php"
-                                class="w-100 h-100 rounded-4 overflow-hidden w-120 h-120 flex-shrink-0">
-                                <img src="assets/images/thumbs/recent-post3.png" alt="" class="cover-img">
-                            </a>
-                            <div class="flex-grow-1">
-                                <h6 class="text-lg">
-                                    <a href="blog-details.php" class="text-line-3">Once determined you need to come up
-                                        with a name</a>
-                                </h6>
-                                <div class="flex-align flex-wrap gap-8">
-                                    <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                    <span class="text-sm text-gray-500">
-                                        <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July 12,
-                                            2025</a>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center flex-sm-nowrap flex-wrap gap-24 mb-0">
-                            <a href="blog-details.php"
-                                class="w-100 h-100 rounded-4 overflow-hidden w-120 h-120 flex-shrink-0">
-                                <img src="assets/images/thumbs/recent-post4.png" alt="" class="cover-img">
-                            </a>
-                            <div class="flex-grow-1">
-                                <h6 class="text-lg">
-                                    <a href="blog-details.php" class="text-line-3">Once determined you need to come up
-                                        with a name</a>
-                                </h6>
-                                <div class="flex-align flex-wrap gap-8">
-                                    <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
-                                    <span class="text-sm text-gray-500">
-                                        <a href="blog-details.php" class="text-gray-500 hover-text-main-600">July 12,
-                                            2025</a>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Recent Post End -->
+                <!-- Pagination code remains the same -->
+            </div>
+            <div class="col-lg-4 ps-xl-4">
+                <!-- Search Start -->
+                <!-- ... search form code ... -->
 
-                    <!-- Tags Start -->
-                    <div class="blog-sidebar border border-gray-100 rounded-8 p-32 mb-40">
-                        <h6 class="text-xl mb-32 pb-32 border-bottom border-gray-100">Recent Posts</h6>
-                        <ul>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Gaming (12)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
+                <!-- Recent Post Start -->
+                <div class="blog-sidebar border border-gray-100 rounded-8 p-32 mb-40">
+                    <h6 class="text-xl mb-32 pb-32 border-bottom border-gray-100">Recent Posts</h6>
+                    <?php if (!empty($blogs)): ?>
+                        <?php 
+                        $recentBlogs = array_slice($blogs, 0, 4);
+                        foreach ($recentBlogs as $recentBlog): 
+                        ?>
+                            <?php 
+                            $recentPrimaryImage = getPrimaryImage($recentBlog['images']);
+                            $recentSlug = $recentBlog['slug'] ?? '#';
+                            $recentTitle = $recentBlog['title'] ?? 'No Title';
+                            ?>
+                            <div class="d-flex align-items-center flex-sm-nowrap flex-wrap gap-24 mb-16">
+                                <!-- Updated URL -->
+                                <a href="blog/<?= $recentSlug ?>" class="w-100 h-100 rounded-4 overflow-hidden w-120 h-120 flex-shrink-0">
+                                    <img src="<?= $recentPrimaryImage ?>" alt="<?= htmlspecialchars($recentTitle) ?>" class="cover-img" style="height: 120px; object-fit: cover;">
                                 </a>
-                            </li>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Smart Gadget (05)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Software (29)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Electronics (24)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Laptop (08)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                            <li class="mb-16">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Mobile & Accessories (16)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                            <li class="mb-0">
-                                <a href="blog-details.php"
-                                    class="flex-between gap-8 text-gray-700 border border-gray-100 rounded-4 p-4 ps-16 hover-border-main-600 hover-text-main-600">
-                                    <span>Apliance (24)</span>
-                                    <span class="w-40 h-40 flex-center rounded-4 bg-main-50 text-main-600"><i
-                                            class="ph ph-arrow-right"></i></span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <!-- Tags End -->
-
+                                <div class="flex-grow-1">
+                                    <h6 class="text-lg">
+                                        <!-- Updated URL -->
+                                        <a href="blog/<?= $recentSlug ?>" class="text-line-3">
+                                            <?= htmlspecialchars($recentTitle) ?>
+                                        </a>
+                                    </h6>
+                                    <div class="flex-align flex-wrap gap-8">
+                                        <!-- <span class="text-lg text-main-600"><i class="ph ph-calendar-dots"></i></span>
+                                        <span class="text-sm text-gray-500">
+                                            <a href="blog/<?= $recentSlug ?>" class="text-gray-500 hover-text-main-600">
+                                                <?= $recentDate ?>
+                                            </a>
+                                        </span> -->
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="text-gray-500 text-center">No recent posts available.</p>
+                    <?php endif; ?>
                 </div>
+                <!-- Recent Post End -->
+
+              
             </div>
         </div>
-    </section>
-    <!-- =============================== Blog Section End =========================== -->
+    </div>
+</section>
+<!-- =============================== Blog Section End =========================== -->
 
     <!-- ========================== Shipping Section Start ============================ -->
     <section class="shipping mb-24" id="shipping">

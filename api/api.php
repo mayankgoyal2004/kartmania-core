@@ -4,12 +4,18 @@ require_once __DIR__ . '/../env.php';
 $baseApiUrl = getenv('BASE_API_URL');
 $apiEndpoints = [
     'FETCH_ALL_MEDIA_API' => '/common/media/read',
+    "Create_Contact_API" => '/common/contact-us/create',
+
 
     'FETCH_ALL_BRAND_API' => '/common/brand/read',
 
     'FETCH_ALL_COLOR_API' => '/common/color/read',
 
     'FETCH_ALL_SIZE_API' => '/common/size/read',
+    'FETCH_ALL_Blog_API' => '/common/blog/read',
+    'FETCH_Single_Blog_API' => '/common/blog/read/slug',
+
+
 
     'FETCH_ALL_PRODUCT_API' => '/common/product/read',
     'FETCH_ALL_PRODUCT_API_PAGINATION' => '/common/product/read/pagination',

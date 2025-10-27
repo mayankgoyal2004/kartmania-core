@@ -3,11 +3,90 @@ session_start();
 require __DIR__ . "/api/api.php";
 require __DIR__ . "/utils/utils.php";
 error_reporting(E_ALL);
-ini_set("", 1);
-
+ini_set("display_errors", 1);
 $utils = new Utils;
 
-// api endpoints
+// Handle contact form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $subject = trim($_POST['subject'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+
+    // Basic validation
+    $errors = [];
+    if (empty($name)) {
+        $errors[] = "Name is required";
+    }
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Valid email is required";
+    }
+    if (empty($phone)) {
+        $errors[] = "Phone number is required";
+    }
+    if (empty($subject)) {
+        $errors[] = "Subject is required";
+    }
+    if (empty($message)) {
+        $errors[] = "Message is required";
+    }
+
+    if (empty($errors)) {
+        // Prepare contact data
+        $contactData = [
+            "name" => $name,
+            "email" => $email,
+            "phone" => $phone,
+            "subject" => $subject,
+            "message" => $message
+        ];
+
+        // Get contact API endpoint
+        $contactApi = getenv("Create_Contact_API");
+        if ($contactApi) {
+            // Send data to API
+            $result = $utils->sendToApi($contactData, $contactApi);
+            if ($result && $result['success']) {
+                $_SESSION['notyf'] = [
+                    'type' => 'success',
+                    'message' => "Thank you for your message! We'll get back to you soon."
+                ];
+                // Clear form data after successful submission
+                unset($_SESSION['form_data']);
+            } else {
+                $errorMessage = $result['message'] ?? 'Failed to send message. Please try again.';
+                $_SESSION['notyf'] = [
+                    'type' => 'error',
+                    'message' => $errorMessage
+                ];
+                $_SESSION['form_data'] = $_POST; // Store form data for repopulation
+            }
+        } else {
+            $_SESSION['notyf'] = [
+                'type' => 'error',
+                'message' => "Contact API endpoint not configured."
+            ];
+            $_SESSION['form_data'] = $_POST;
+        }
+
+        // Redirect to prevent form resubmission
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    } else {
+        $_SESSION['notyf'] = [
+            'type' => 'error',
+            'message' => implode(", ", $errors)
+        ];
+        $_SESSION['form_data'] = $_POST; // Store form data for repopulation
+    }
+}
+
+// Get stored form data if available
+$formData = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']); // Clear after use
+
+// Your existing API endpoints and data fetching
 $fetchAllMediaApi = getenv("FETCH_ALL_MEDIA_API");
 $fetchAllProductApi = getenv("FETCH_ALL_PRODUCT_API");
 $fetchAllProductCategoryApi = getenv("FETCH_ALL_PRODUCT_CATEGORY_API");
@@ -18,33 +97,24 @@ $resultMedia = $utils->fetchFromApi($fetchAllMediaApi);
 $resultProduct = $utils->fetchFromApi($fetchAllProductApi);
 $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
 
-
 // Filter the data to include only items with category "BANNER"
-$bannerImages = array_filter($resultMedia['data']['data'], function ($item) {
+$bannerImages = array_filter($resultMedia['data']['data'] ?? [], function ($item) {
     return isset($item['category']) && $item['category'] === 'BANNER';
 });
 
-$heroSectionImages = array_filter($resultMedia['data']['data'], function ($item) {
+$heroSectionImages = array_filter($resultMedia['data']['data'] ?? [], function ($item) {
     return isset($item['category']) && $item['category'] === 'HEROSECTION';
 });
 
-$advertisementImages = array_filter($resultMedia['data']['data'], function ($item) {
+$advertisementImages = array_filter($resultMedia['data']['data'] ?? [], function ($item) {
     return isset($item['category']) && $item['category'] === 'ADVERTISEMENT';
 });
 
-$productsImages = array_filter($resultMedia['data']['data'], function ($item) {
+$productsImages = array_filter($resultMedia['data']['data'] ?? [], function ($item) {
     return isset($item['category']) && $item['category'] === 'PRODUCT';
 });
-
-// echo "<pre>";
-// print_r($advertisementImages);
-// exit;
-
-
-
-
-
 ?>
+
 <!DOCTYPE html>
 <html lang="en" class="color-two font-exo header-style-two">
 
@@ -53,10 +123,9 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Title -->
-    <title> Contact Us</title>
+    <title>Contact Us</title>
     <!-- Favicon -->
     <link rel="shortcut icon" href="assets/images/logo/favicon.png">
-
     <!-- Bootstrap -->
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
     <!-- select 2 -->
@@ -69,6 +138,8 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
     <link rel="stylesheet" href="assets/css/animate.css">
     <!-- AOS Animation -->
     <link rel="stylesheet" href="assets/css/aos.css">
+    <!-- Notyf -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <!-- Main css -->
     <link rel="stylesheet" href="assets/css/main.css">
 </head>
@@ -118,11 +189,12 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
     <!-- ==================== Mobile Menu Start Here ==================== -->
     <div class="mobile-menu scroll-sm d-lg-none d-block">
-        <button type="button" class="close-button"> <i class="ph ph-x"></i> </button>
+        <button type="button" class="close-button">
+            <i class="ph ph-x"></i>
+        </button>
         <?php require_once 'components/mobile-menu.php' ?>
     </div>
     <!-- ==================== Mobile Menu End Here ==================== -->
-
 
     <!-- ======================= Middle Top Start ========================= -->
     <div class="header-top bg-main-600 flex-between">
@@ -165,7 +237,7 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                     <li class="flex-align">
                         <i class="ph ph-caret-right"></i>
                     </li>
-                    <li class="text-sm text-main-600"> Contact </li>
+                    <li class="text-sm text-main-600">Contact</li>
                 </ul>
             </div>
         </div>
@@ -178,45 +250,54 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
             <div class="row gy-5">
                 <div class="col-lg-8">
                     <div class="contact-box border border-gray-100 rounded-16 px-24 py-40">
-                        <form action="#">
+                        <form action="" method="POST" id="contactForm">
                             <h6 class="mb-32">Make Custom Request</h6>
                             <div class="row gy-4">
                                 <div class="col-sm-6 col-xs-6">
                                     <label for="name"
                                         class="flex-align gap-4 text-sm font-heading-two text-gray-900 fw-semibold mb-4">Full
-                                        Name <span class="text-danger text-xl line-height-1">*</span> </label>
-                                    <input type="text" class="common-input px-16" id="name" placeholder="Full name">
+                                        Name <span class="text-danger text-xl line-height-1">*</span></label>
+                                    <input type="text" class="common-input px-16" id="name" name="name"
+                                        placeholder="Full name" value="<?= htmlspecialchars($formData['name'] ?? '') ?>"
+                                        required>
                                 </div>
                                 <div class="col-sm-6 col-xs-6">
                                     <label for="email"
                                         class="flex-align gap-4 text-sm font-heading-two text-gray-900 fw-semibold mb-4">Email
-                                        Address <span class="text-danger text-xl line-height-1">*</span> </label>
-                                    <input type="email" class="common-input px-16" id="email"
-                                        placeholder="Email address">
+                                        Address <span class="text-danger text-xl line-height-1">*</span></label>
+                                    <input type="email" class="common-input px-16" id="email" name="email"
+                                        placeholder="Email address"
+                                        value="<?= htmlspecialchars($formData['email'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-sm-6 col-xs-6">
                                     <label for="phone"
                                         class="flex-align gap-4 text-sm font-heading-two text-gray-900 fw-semibold mb-4">Phone
-                                        Number<span class="text-danger text-xl line-height-1">*</span> </label>
-                                    <input type="number" class="common-input px-16" id="phone"
-                                        placeholder="Phone Number*">
+                                        Number<span class="text-danger text-xl line-height-1">*</span></label>
+                                    <input type="tel" class="common-input px-16" id="phone" name="phone"
+                                        placeholder="Phone Number"
+                                        value="<?= htmlspecialchars($formData['phone'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-sm-6 col-xs-6">
                                     <label for="subject"
                                         class="flex-align gap-4 text-sm font-heading-two text-gray-900 fw-semibold mb-4">Subject
-                                        <span class="text-danger text-xl line-height-1">*</span> </label>
-                                    <input type="text" class="common-input px-16" id="subject" placeholder="Subject">
+                                        <span class="text-danger text-xl line-height-1">*</span></label>
+                                    <input type="text" class="common-input px-16" id="subject" name="subject"
+                                        placeholder="Subject"
+                                        value="<?= htmlspecialchars($formData['subject'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-sm-12">
                                     <label for="message"
                                         class="flex-align gap-4 text-sm font-heading-two text-gray-900 fw-semibold mb-4">Message
-                                        <span class="text-danger text-xl line-height-1">*</span> </label>
-                                    <textarea class="common-input px-16" id="message"
-                                        placeholder="Type your message"></textarea>
+                                        <span class="text-danger text-xl line-height-1">*</span></label>
+                                    <textarea class="common-input px-16" id="message" name="message"
+                                        placeholder="Type your message" rows="5"
+                                        required><?= htmlspecialchars($formData['message'] ?? '') ?></textarea>
                                 </div>
                                 <div class="col-sm-12 mt-32">
-                                    <button type="submit" class="btn btn-main py-18 px-32 rounded-8">Get a
-                                        Quote</button>
+                                    <button type="submit" name="contact_submit"
+                                        class="btn btn-main py-18 px-32 rounded-8">
+                                        Get a Quote
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -287,7 +368,7 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                             class="w-56 h-56 flex-center rounded-circle bg-main-600 text-white text-32 flex-shrink-0"><i
                                 class="ph-fill ph-hand-heart"></i></span>
                         <div class="">
-                            <h6 class="mb-0"> 100% Satisfaction</h6>
+                            <h6 class="mb-0">100% Satisfaction</h6>
                             <span class="text-sm text-heading">Free shipping all over the US</span>
                         </div>
                     </div>
@@ -298,7 +379,7 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                             class="w-56 h-56 flex-center rounded-circle bg-main-600 text-white text-32 flex-shrink-0"><i
                                 class="ph-fill ph-credit-card"></i></span>
                         <div class="">
-                            <h6 class="mb-0"> Secure Payments</h6>
+                            <h6 class="mb-0">Secure Payments</h6>
                             <span class="text-sm text-heading">Free shipping all over the US</span>
                         </div>
                     </div>
@@ -309,7 +390,7 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                             class="w-56 h-56 flex-center rounded-circle bg-main-600 text-white text-32 flex-shrink-0"><i
                                 class="ph-fill ph-chats"></i></span>
                         <div class="">
-                            <h6 class="mb-0"> 24/7 Support</h6>
+                            <h6 class="mb-0">24/7 Support</h6>
                             <span class="text-sm text-heading">Free shipping all over the US</span>
                         </div>
                     </div>
@@ -319,14 +400,12 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
     </section>
     <!-- ========================== Shipping Section End ============================ -->
 
-
     <!-- ==================== Footer Start Here ==================== -->
     <footer class="footer py-120">
         <div class="container container-lg">
             <?php require_once 'components/top-footer.php' ?>
         </div>
     </footer>
-
     <!-- bottom Footer -->
     <div class="bottom-footer py-8">
         <div class="container container-lg">
@@ -334,8 +413,6 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
         </div>
     </div>
     <!-- ==================== Footer End Here ==================== -->
-
-
 
     <!-- Jquery js -->
     <script src="assets/js/jquery-3.7.1.min.js"></script>
@@ -361,10 +438,41 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
     <script src="assets/js/vanilla-tilt.min.js"></script>
     <!-- Counter -->
     <script src="assets/js/counter.min.js"></script>
+    <!-- Notyf -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     <!-- main js -->
     <script src="assets/js/main.js"></script>
 
     <script>
+        // Initialize Notyf
+        const notyf = new Notyf({
+            duration: 3000,
+            position: { x: 'right', y: 'top' },
+            types: [
+                {
+                    type: 'success',
+                    background: '#4dc76f',
+                    textColor: '#FFFFFF',
+                    dismissible: false
+                },
+                {
+                    type: 'error',
+                    background: '#ff1916',
+                    textColor: '#FFFFFF',
+                    dismissible: false,
+                    duration: 4000
+                }
+            ]
+        });
+
+
+        // Show notification if exists
+        <?php if (isset($_SESSION['notyf'])): ?>
+            <?php $notyf = $_SESSION['notyf'];
+            unset($_SESSION['notyf']); ?>
+            notyf.<?= $notyf['type'] ?>("<?= $notyf['message'] ?>");
+        <?php endif; ?>
+
         $(document).ready(function () {
             let productIdsCart = JSON.parse(localStorage.getItem('cart')) || [];
             // Always update count directly
@@ -378,30 +486,28 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                 url: "<?php echo getenv("FETCH_ALL_MEDIA_API") ?>",
                 type: "get",
                 success: function (response, textStatus, xhr) {
-
                     if (response.data && Array.isArray(response.data)) {
                         const logoItems = response.data.filter(item => item.category === "LOGO");
                         logoItems.forEach(item => {
                             console.log(item.image);
                             let logoSection = $(".logo .link");
                             logoSection.empty();
-
-                            logoSection.append(`
-                            <img src="${item.image}" alt="${item.title}"/>
-                        `);;
+                            logoSection.append(`<img src="${item.image}" alt="${item.title}"/>`);
                         });
                     }
-
                 },
                 error: function (xhr) {
                     console.log(xhr);
                 },
             });
 
+            // AJAX contact form submission (optional - you can keep the current PHP submission)
+            $(document).on("submit", "#contactForm", function (e) {
+                // You can implement AJAX submission here if needed
+                // For now, the form will submit normally via PHP
+            });
         })
     </script>
-
-
 </body>
 
 </html>

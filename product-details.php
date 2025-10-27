@@ -583,11 +583,11 @@ else {
                             </div>
                         </div>
                         <div class="mb-32">
-                            <div class="flex-between flex-wrap gap-8 border-bottom border-gray-100 pb-16 mb-16">
-                                <span class="text-gray-500">Price</span>
-                                <h6 class="text-lg mb-0">
-                                    ₹<?= htmlspecialchars(isset($discountedPrice) ? $discountedPrice : 32000); ?></h6>
-                            </div>
+                          <div class="flex-between flex-wrap gap-8 border-bottom border-gray-100 pb-16 mb-16">
+    <span class="text-gray-500">Price</span>
+    <h6 class="text-lg mb-0">
+        ₹<?= isset($discountedPrice) ? number_format($discountedPrice, 2) : '32000.00' ?></h6>
+</div>
                             <div class="flex-between flex-wrap gap-8">
                                 <span class="text-gray-500">Shipping</span>
                                 <h6 class="text-lg mb-0">From ₹10.00</h6>
