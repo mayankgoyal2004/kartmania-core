@@ -300,10 +300,10 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
         <span class="text-gray-900 font-heading-two text-md fw-bold checkout-subtotal">₹00.00</span>
     </div>
     <!-- Discount row will be dynamically inserted here -->
-    <div class="mb-24 flex-between gap-8">
+    <!-- <div class="mb-24 flex-between gap-8">
         <span class="text-gray-900 font-heading-two text-md fw-semibold">Tax</span>
         <span class="text-gray-900 font-heading-two text-md fw-bold">₹10.00</span>
-    </div>
+    </div> -->
     <div class="mb-24 flex-between gap-8">
         <span class="text-gray-900 font-heading-two text-md fw-semibold">Shipping</span>
         <span class="text-success-600 font-heading-two text-md fw-bold">Free</span>
@@ -587,9 +587,9 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
 
             // Function to update checkout totals
             function updateCheckoutTotals(subtotal, totalDiscount) {
-                let tax = 10.00;
+                // let tax = 10.00;
                 let shipping = 0;
-                let finalTotal = subtotal + tax + shipping;
+                let finalTotal = subtotal + shipping;
 
                 // Update the display
                 $('.checkout-subtotal').text(`₹${subtotal.toFixed(2)}`);

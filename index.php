@@ -1190,9 +1190,7 @@ $productsImages = array_filter($resultMedia['data']['data'], function ($item) {
                                 data-aos-duration="<?= 200 + $key * 200 ?>">
                                 <div
                                     class="product-card h-100 p-12 border border-gray-100 hover-border-main-600 rounded-16 position-relative transition-2 group-item">
-                                    <button type="button" class="wishlist-btn-two">
-                                        <i class="ph-bold ph-heart"></i>
-                                    </button>
+                                   
                                     <a href="<?= getenv("BASE_URL") . "/product/" . $utils->makeSlug($product['name']) ?>"
                                         class="product-card__thumb flex-center overflow-hidden">
                                         <img src="<?= htmlspecialchars($primaryImage) ?>" alt="">

@@ -588,10 +588,10 @@ else {
     <h6 class="text-lg mb-0">
         ₹<?= isset($discountedPrice) ? number_format($discountedPrice, 2) : '32000.00' ?></h6>
 </div>
-                            <div class="flex-between flex-wrap gap-8">
+                            <!-- <div class="flex-between flex-wrap gap-8">
                                 <span class="text-gray-500">Shipping</span>
                                 <h6 class="text-lg mb-0">From ₹10.00</h6>
-                            </div>
+                            </div> -->
                         </div>
 
                         <a href="javascript:void(0);"
@@ -1034,7 +1034,7 @@ else {
                                                             class="ph-fill ph-star"></i></span>
                                                 </div>
                                             </div>
-                                            <div class="mt-32">
+                                            <div class="mt-32">\
                                                 <form action="#">
                                                     <div class="mb-32">
                                                         <label for="title" class="text-neutral-600 mb-8">Review

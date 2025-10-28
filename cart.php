@@ -467,10 +467,10 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
                                 <span class="text-gray-900 font-heading-two">Discount</span>
                                 <span class="text-success-600 fw-semibold cart-discount">-₹00.00</span>
                             </div>
-                            <div class="mb-24 flex-between gap-8">
+                            <!-- <div class="mb-24 flex-between gap-8">
                                 <span class="text-gray-900 font-heading-two">Estimated Tax</span>
                                 <span class="text-gray-900 fw-semibold">₹10.00</span>
-                            </div>
+                            </div> -->
                             <div class="mb-0 flex-between gap-8">
                                 <span class="text-gray-900 font-heading-two">Shipping</span>
                                 <span class="text-success-600 fw-semibold">Free</span>
@@ -808,7 +808,7 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
             function updateCartTotals() {
                 let subtotal = 0;
                 let totalDiscount = 0;
-                let tax = 10.00;
+                // let tax = 10.00;
                 let shipping = 0;
 
                 $('#cartTableBody tr').each(function () {
@@ -826,7 +826,7 @@ $resultProductCategory = $utils->fetchFromApi($fetchAllProductCategoryApi);
                     totalDiscount += rowDiscount;
                 });
 
-                let finalTotal = subtotal + tax + shipping;
+                let finalTotal = subtotal + shipping;
 
                 // Update the display
                 $('.cart-subtotal').text(`₹${subtotal.toFixed(2)}`);
