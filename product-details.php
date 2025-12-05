@@ -1,4 +1,4 @@
-<?php 
+<?php
 session_start();
 require __DIR__ . "/api/api.php";
 error_reporting(E_ALL);
@@ -30,6 +30,21 @@ $variants = $resultProductByGroup['data']['data']['variants'] ?? [];
 $colors = [];
 $sizes = [];
 
+
+$colorImages = [];
+
+// Group first image per color
+foreach ($variants as $variant) {
+    $colorName = strtolower($variant['color']);
+    if (!isset($colorImages[$colorName])) {
+        $imageUrl = $variant['images'][0]['imageUrl'] ?? '';
+        if ($imageUrl) {
+            $colorImages[$colorName] = $imageUrl;
+        } else {
+            $colorImages[$colorName] = ''; // fallback if no image
+        }
+    }
+}
 // Get color and size from URL
 $selectedColor = $_GET['color'] ?? '';
 $selectedSize = $_GET['size'] ?? '';
@@ -134,18 +149,18 @@ if ($discountValue > 0) {
 }
 
 // Format for display (optional)
-$originalPriceDisplay   = number_format($originalPrice, 2, '.', '');
+$originalPriceDisplay = number_format($originalPrice, 2, '.', '');
 $discountedPriceDisplay = number_format($discountedPrice, 2, '.', '');
 
 
 $similarProducts = [];
 if (isset($allProducts['data']['data']) && is_array($allProducts['data']['data'])) {
-    $similarProducts = array_filter($allProducts['data']['data'], function($product) use ($resultProduct) {
+    $similarProducts = array_filter($allProducts['data']['data'], function ($product) use ($resultProduct) {
         return $product['id'] != $resultProduct['data']['data']['id'];
     });
 
     // Sort by popularity in descending order
-    usort($similarProducts, function($a, $b) {
+    usort($similarProducts, function ($a, $b) {
         return ($b['popularity'] ?? 0) - ($a['popularity'] ?? 0);
     });
 
@@ -325,40 +340,59 @@ else {
                         <div class="col-xl-6">
                             <div class="product-details__left">
 
-                               <div class="product-details__thumb-slider border border-gray-100 rounded-16">
-    <?php 
-    $displayImages = $currentVariant['images'] ?? $resultProduct['data']['data']['images'];
-    foreach ($displayImages as $key => $image): ?>
-        <div class="">
-            <div class="product-details__thumb flex-center h-100">
-                <img src="<?= htmlspecialchars($image['imageUrl']) ?>" alt="">
-            </div>
-        </div>
-    <?php endforeach; ?>
+                                <div class="product-details__thumb-slider border border-gray-100 rounded-16">
+                                    <?php
+                                    $displayImages = $currentVariant['images'] ?? $resultProduct['data']['data']['images'];
+                                    foreach ($displayImages as $key => $image): ?>
+                                        <div class="">
+                                            <div class="product-details__thumb flex-center h-100">
+                                                <img src="<?= htmlspecialchars($image['imageUrl']) ?>" alt="">
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
 
-    <?php if (empty($displayImages)): ?>
-        <!-- Your fallback images here -->
-    <?php endif; ?>
-</div>
-  <div class="mt-24">
-        <div class="product-details__images-slider">
-            <?php 
-            if (!empty($displayImages)):
-                foreach ($displayImages as $image): ?>
-                    <div>
-                        <div class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8">
-                            <img src="<?= htmlspecialchars($image['imageUrl']) ?>" alt="">
-                        </div>
-                    </div>
-                <?php endforeach;
-            else: ?>
-                <!-- Fallback thumbnails -->
-                <div><div class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8"><img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb1.png" alt=""></div></div>
-                <div><div class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8"><img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb2.png" alt=""></div></div>
-                <div><div class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8"><img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb3.png" alt=""></div></div>
-            <?php endif; ?>
-        </div>
-    </div>
+                                    <?php if (empty($displayImages)): ?>
+                                        <!-- Your fallback images here -->
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mt-24">
+                                    <div class="product-details__images-slider">
+                                        <?php
+                                        if (!empty($displayImages)):
+                                            foreach ($displayImages as $image): ?>
+                                                <div>
+                                                    <div
+                                                        class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8">
+                                                        <img src="<?= htmlspecialchars($image['imageUrl']) ?>" alt="">
+                                                    </div>
+                                                </div>
+                                            <?php endforeach;
+                                        else: ?>
+                                            <!-- Fallback thumbnails -->
+                                            <div>
+                                                <div
+                                                    class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8">
+                                                    <img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb1.png"
+                                                        alt="">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div
+                                                    class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8">
+                                                    <img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb2.png"
+                                                        alt="">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div
+                                                    class="max-w-120 max-h-120 h-100 flex-center border border-gray-100 rounded-16 p-8">
+                                                    <img src="<?= getenv("BASE_URL") ?>/assets/images/thumbs/product-details-two-thumb3.png"
+                                                        alt="">
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-xl-6">
@@ -400,57 +434,63 @@ else {
                                 <div class="flex-align flex-wrap gap-12">
                                     <div class="flex-align gap-12 flex-wrap">
                                         <div class="flex-align gap-8">
-                                           <?php
-            $ratingValue = round($rating ?? 0); // round average rating to nearest integer
-            for ($i = 1; $i <= 5; $i++):
-                if ($i <= $ratingValue):
-            ?>
-                <span class="text-xs fw-medium text-warning-600 d-flex"><i class="ph-fill ph-star"></i></span>
-            <?php else: ?>
-                <span class="text-xs fw-medium text-gray-400 d-flex"><i class="ph-fill ph-star"></i></span>
-            <?php endif; endfor; ?>
+                                            <?php
+                                            $ratingValue = round($rating ?? 0); // round average rating to nearest integer
+                                            for ($i = 1; $i <= 5; $i++):
+                                                if ($i <= $ratingValue):
+                                                    ?>
+                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                            class="ph-fill ph-star"></i></span>
+                                                <?php else: ?>
+                                                    <span class="text-xs fw-medium text-gray-400 d-flex"><i
+                                                            class="ph-fill ph-star"></i></span>
+                                                <?php endif; endfor; ?>
                                         </div>
-                                       <span class="text-sm fw-medium text-neutral-600"><?= number_format($rating ?? 0, 1); ?> Star Rating</span>
-        <span class="text-sm fw-medium text-gray-500">(<?= count($reviews ?? []); ?> Reviews)</span>
+                                        <span
+                                            class="text-sm fw-medium text-neutral-600"><?= number_format($rating ?? 0, 1); ?>
+                                            Star Rating</span>
+                                        <span class="text-sm fw-medium text-gray-500">(<?= count($reviews ?? []); ?>
+                                            Reviews)</span>
                                     </div>
                                     <span class="text-sm fw-medium text-gray-500">|</span>
-                                   <span class="text-gray-900">
-    <span class="text-gray-400">SKU:</span>
-    <span id="product-sku"><?= htmlspecialchars($currentVariant['sku'] ?? $resultProduct['data']['data']['sku']) ?></span>
-</span>
+                                    <span class="text-gray-900">
+                                        <span class="text-gray-400">SKU:</span>
+                                        <span
+                                            id="product-sku"><?= htmlspecialchars($currentVariant['sku'] ?? $resultProduct['data']['data']['sku']) ?></span>
+                                    </span>
                                 </div>
                                 <span class="mt-32 pt-32 text-gray-700 border-top border-gray-100 d-block"></span>
-                             <p class="text-gray-700">
-    <?= htmlspecialchars(
-        isset($currentVariant['description']) && !empty($currentVariant['description']) 
-            ? $currentVariant['description'] 
-            : $resultProduct['data']['data']['description'] ?? "No description available."
-    ) ?>
-</p>
+                                <p class="text-gray-700">
+                                    <?= htmlspecialchars(
+                                        isset($currentVariant['description']) && !empty($currentVariant['description'])
+                                        ? $currentVariant['description']
+                                        : $resultProduct['data']['data']['description'] ?? "No description available."
+                                    ) ?>
+                                </p>
 
 
                                 <div class="my-32 flex-align gap-16 flex-wrap">
-    <div class="flex-align gap-8">
-        <?php if ($discountValue > 0): ?>
-            <div class="flex-align gap-8 text-main-two-600">
-                <i class="ph-fill ph-seal-percent text-xl"></i>
-                -<?= htmlspecialchars($discountValue) ?>
-                <?= ($discountType === 'PERCENTAGE') ? '%' : '₹' ?>
-            </div>
-        <?php endif; ?>
+                                    <div class="flex-align gap-8">
+                                        <?php if ($discountValue > 0): ?>
+                                            <div class="flex-align gap-8 text-main-two-600">
+                                                <i class="ph-fill ph-seal-percent text-xl"></i>
+                                                -<?= htmlspecialchars($discountValue) ?>
+                                                <?= ($discountType === 'PERCENTAGE') ? '%' : '₹' ?>
+                                            </div>
+                                        <?php endif; ?>
 
-        <h6 class="mb-0">Rs <?= htmlspecialchars($discountedPriceDisplay) ?></h6>
-    </div>
+                                        <h6 class="mb-0">Rs <?= htmlspecialchars($discountedPriceDisplay) ?></h6>
+                                    </div>
 
-    <?php if ($discountedPrice < $originalPrice): ?>
-        <div class="flex-align gap-8">
-            <span class="text-gray-700">Regular Price</span>
-            <h6 class="text-xl text-gray-400 mb-0 fw-medium text-decoration-line-through">
-                Rs <?= htmlspecialchars($originalPriceDisplay) ?>
-            </h6>
-        </div>
-    <?php endif; ?>
-</div>
+                                    <?php if ($discountedPrice < $originalPrice): ?>
+                                        <div class="flex-align gap-8">
+                                            <span class="text-gray-700">Regular Price</span>
+                                            <h6 class="text-xl text-gray-400 mb-0 fw-medium text-decoration-line-through">
+                                                Rs <?= htmlspecialchars($originalPriceDisplay) ?>
+                                            </h6>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
 
 
                                 <div class="my-32 flex-align flex-wrap gap-12">
@@ -473,55 +513,56 @@ else {
 
                                 <span class="mt-32 pt-32 text-gray-700 border-top border-gray-100 d-block"></span>
 
-                            <div class="mt-32">
-    <h6 class="mb-16">Quick Overview</h6>
-    <div class="flex flex-col gap-16">                                                   
+                                <div class="mt-32">
+                                    <h6 class="mb-16">Quick Overview</h6>
+                                    <div class="flex flex-col gap-16">
 
-        <!-- Colors --> 
-        <div>
-            <span class="text-gray-900 d-block mb-12">
-                Color: <span class="fw-medium"><?= htmlspecialchars($selectedColor) ?></span>
-            </span>
-            <div class="color-list flex-align gap-8">
-                <?php foreach ($colors as $color): ?>
-                    <?php
-                        $colorClass = '';
-                        switch (strtolower($color)) {
-                            case 'green': $colorClass = 'bg-success-600'; break;
-                            case 'pink': $colorClass = 'bg-pink-500'; break;
-                            case 'blue': $colorClass = 'bg-info-600'; break;
-                            case 'red': $colorClass = 'bg-danger-600'; break;
-                            case 'black': $colorClass = 'bg-gray-900'; break;
-                            case 'white': $colorClass = 'bg-gray-100 border border-gray-300'; break;
-                            default: $colorClass = 'bg-gray-400'; break;
-                        }
-                        $isSelected = strtolower($selectedColor) === strtolower($color);
-                    ?>
-                    <a href="?color=<?= urlencode($color) ?>&size=<?= urlencode($selectedSize) ?>"
-                       class="color-list__button w-20 h-20 border-2 rounded-circle <?= $colorClass ?> <?= $isSelected ? 'border-main-600' : 'border-gray-200' ?>">
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
+                                        <!-- Colors -->
+                                        <div>
+                                            <span class="text-gray-900 d-block mb-12">
+                                                Color: <span
+                                                    class="fw-medium"><?= htmlspecialchars($selectedColor) ?></span>
+                                            </span>
 
-        <!-- Sizes -->
-        <div>
-            <span class="text-gray-900 d-block mb-12">
-                Size: <span class="fw-medium"><?= htmlspecialchars($selectedSize) ?></span>
-            </span>
-            <div class="flex-align gap-8 flex-wrap">
-                <?php foreach ($sizes as $size): ?>
-                    <?php $isSelectedSize = $selectedSize === $size; ?>
-                    <a href="?color=<?= urlencode($selectedColor) ?>&size=<?= urlencode($size) ?>"
-                       class="px-12 py-8 text-sm rounded-8 text-gray-900 border <?= $isSelectedSize ? 'border-main-600 bg-main-50 text-main-600' : 'border-gray-200 hover-border-main-600 hover-text-main-600' ?>">
-                        <?= htmlspecialchars($size) ?>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        </div>
+                                            <div class="color-list flex-align gap-8">
 
-    </div>
-</div>
+                                                <?php foreach ($colorImages as $color => $imgUrl): ?>
+                                                    <?php $isSelected = strtolower($selectedColor) === $color; ?>
+
+                                                    <a href="?color=<?= urlencode($color) ?>&size=<?= urlencode($selectedSize) ?>"
+                                                        class="color-item <?= $isSelected ? 'active' : '' ?>">
+
+                                                        <?php if ($imgUrl): ?>
+                                                            <img src="<?= $imgUrl ?>" alt="<?= htmlspecialchars($color) ?>" />
+                                                        <?php else: ?>
+                                                            <span class="no-img-color"></span>
+                                                        <?php endif; ?>
+
+                                                    </a>
+                                                <?php endforeach; ?>
+
+                                            </div>
+                                        </div>
+
+                                        <!-- Sizes -->
+                                        <div>
+                                            <span class="text-gray-900 d-block mb-12">
+                                                Size: <span
+                                                    class="fw-medium"><?= htmlspecialchars($selectedSize) ?></span>
+                                            </span>
+                                            <div class="flex-align gap-8 flex-wrap">
+                                                <?php foreach ($sizes as $size): ?>
+                                                    <?php $isSelectedSize = $selectedSize === $size; ?>
+                                                    <a href="?color=<?= urlencode($selectedColor) ?>&size=<?= urlencode($size) ?>"
+                                                        class="px-12 py-8 text-sm rounded-8 text-gray-900 border <?= $isSelectedSize ? 'border-main-600 bg-main-50 text-main-600' : 'border-gray-200 hover-border-main-600 hover-text-main-600' ?>">
+                                                        <?= htmlspecialchars($size) ?>
+                                                    </a>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
 
 
                                 <span class="mt-32 pt-32 text-gray-700 border-top border-gray-100 d-block"></span>
@@ -562,9 +603,10 @@ else {
                             </div>
                         </div>
                         <div class="mb-32">
-                           <label for="stock" class="text-lg mb-8 text-heading fw-semibold d-block">
-    Total Stock: <span id="total-stock"><?= htmlspecialchars($currentVariant['stock'] ?? 0) ?></span>
-</label>
+                            <label for="stock" class="text-lg mb-8 text-heading fw-semibold d-block">
+                                Total Stock: <span
+                                    id="total-stock"><?= htmlspecialchars($currentVariant['stock'] ?? 0) ?></span>
+                            </label>
                             <span class="text-xl d-flex">
                                 <i class="ph ph-location"></i>
                             </span>
@@ -583,11 +625,12 @@ else {
                             </div>
                         </div>
                         <div class="mb-32">
-                          <div class="flex-between flex-wrap gap-8 border-bottom border-gray-100 pb-16 mb-16">
-    <span class="text-gray-500">Price</span>
-    <h6 class="text-lg mb-0">
-        ₹<?= isset($discountedPrice) ? number_format($discountedPrice, 2) : '32000.00' ?></h6>
-</div>
+                            <div class="flex-between flex-wrap gap-8 border-bottom border-gray-100 pb-16 mb-16">
+                                <span class="text-gray-500">Price</span>
+                                <h6 class="text-lg mb-0">
+                                    ₹<?= isset($discountedPrice) ? number_format($discountedPrice, 2) : '32000.00' ?>
+                                </h6>
+                            </div>
                             <!-- <div class="flex-between flex-wrap gap-8">
                                 <span class="text-gray-500">Shipping</span>
                                 <h6 class="text-lg mb-0">From ₹10.00</h6>
@@ -698,13 +741,13 @@ else {
                                 aria-labelledby="pills-description-tab" tabindex="0">
                                 <div class="mb-40">
                                     <h6 class="mb-24">Product Description</h6>
-                                <p class="text-gray-700">
-    <?= htmlspecialchars(
-        isset($currentVariant['description']) && !empty($currentVariant['description']) 
-            ? $currentVariant['description'] 
-            : $resultProduct['data']['data']['description'] ?? "No description available."
-    ) ?>
-</p>
+                                    <p class="text-gray-700">
+                                        <?= htmlspecialchars(
+                                            isset($currentVariant['description']) && !empty($currentVariant['description'])
+                                            ? $currentVariant['description']
+                                            : $resultProduct['data']['data']['description'] ?? "No description available."
+                                        ) ?>
+                                    </p>
                                     <!-- <p>Morbi ut sapien vitae odio accumsan gravida. Morbi vitae erat auctor, eleifend
                                         nunc a, lobortis neque. Praesent aliquam dignissim viverra. Maecenas lacus odio,
                                         feugiat eu nunc sit amet, maximus sagittis dolor. Vivamus nisi sapien, elementum
@@ -881,40 +924,50 @@ else {
                             <div class="tab-pane fade" id="pills-reviews" role="tabpanel"
                                 aria-labelledby="pills-reviews-tab" tabindex="0">
                                 <div class="row g-4">
-        <div class="col-lg-6">
-            <h6 class="mb-24">Product Reviews</h6>
+                                    <div class="col-lg-6">
+                                        <h6 class="mb-24">Product Reviews</h6>
 
-            <?php 
-            $reviews = $resultProductByGroup['data']['data']['mainProduct']['reviews'] ?? [];
+                                        <?php
+                                        $reviews = $resultProductByGroup['data']['data']['mainProduct']['reviews'] ?? [];
 
-            if(!empty($reviews)):
-                foreach($reviews as $review): 
-            ?>
-            <div class="d-flex align-items-start gap-24 pb-44 border-bottom border-gray-100 mb-44">
-                <img src="<?= getenv("BASE_URL") . "/assets/" ?>images/thumbs/comment-img1.png"
-                    alt="" class="w-52 h-52 object-fit-cover rounded-circle flex-shrink-0">
-                <div class="flex-grow-1">
-                    <div class="flex-between align-items-start gap-8 ">
-                        <div class="">
-                            <h6 class="mb-12 text-md"><?= htmlspecialchars($review['customer']['name'] ?? 'Anonymous') ?></h6>
-                            <div class="flex-align gap-8">
-                                <?php
-                                    $rating = intval($review['rating'] ?? 0);
-                                    for($i=1; $i<=5; $i++):
-                                        if($i <= $rating):
-                                ?>
-                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i class="ph-fill ph-star"></i></span>
-                                <?php else: ?>
-                                    <span class="text-xs fw-medium text-gray-400 d-flex"><i class="ph-fill ph-star"></i></span>
-                                <?php endif; endfor; ?>
-                            </div>
-                        </div>
-                        <span class="text-gray-800 text-xs"><?= date('d M Y', strtotime($review['createdAt'] ?? 'now')) ?></span>
-                    </div>
-                    <h6 class="mb-14 text-md mt-24"><?= htmlspecialchars($review['title'] ?? 'Review') ?></h6>
-                    <p class="text-gray-700"><?= htmlspecialchars($review['review'] ?? '') ?></p>
+                                        if (!empty($reviews)):
+                                            foreach ($reviews as $review):
+                                                ?>
+                                                <div
+                                                    class="d-flex align-items-start gap-24 pb-44 border-bottom border-gray-100 mb-44">
+                                                    <img src="<?= getenv("BASE_URL") . "/assets/" ?>images/thumbs/comment-img1.png"
+                                                        alt="" class="w-52 h-52 object-fit-cover rounded-circle flex-shrink-0">
+                                                    <div class="flex-grow-1">
+                                                        <div class="flex-between align-items-start gap-8 ">
+                                                            <div class="">
+                                                                <h6 class="mb-12 text-md">
+                                                                    <?= htmlspecialchars($review['customer']['name'] ?? 'Anonymous') ?>
+                                                                </h6>
+                                                                <div class="flex-align gap-8">
+                                                                    <?php
+                                                                    $rating = intval($review['rating'] ?? 0);
+                                                                    for ($i = 1; $i <= 5; $i++):
+                                                                        if ($i <= $rating):
+                                                                            ?>
+                                                                            <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                                                    class="ph-fill ph-star"></i></span>
+                                                                        <?php else: ?>
+                                                                            <span class="text-xs fw-medium text-gray-400 d-flex"><i
+                                                                                    class="ph-fill ph-star"></i></span>
+                                                                        <?php endif; endfor; ?>
+                                                                </div>
+                                                            </div>
+                                                            <span
+                                                                class="text-gray-800 text-xs"><?= date('d M Y', strtotime($review['createdAt'] ?? 'now')) ?></span>
+                                                        </div>
+                                                        <h6 class="mb-14 text-md mt-24">
+                                                            <?= htmlspecialchars($review['title'] ?? 'Review') ?>
+                                                        </h6>
+                                                        <p class="text-gray-700">
+                                                            <?= htmlspecialchars($review['review'] ?? '') ?>
+                                                        </p>
 
-                    <!-- <div class="flex-align gap-20 mt-44">
+                                                        <!-- <div class="flex-align gap-20 mt-44">
                         <button class="flex-align gap-12 text-gray-700 hover-text-main-600">
                             <i class="ph-bold ph-thumbs-up"></i>
                             Like
@@ -925,17 +978,17 @@ else {
                             Reply
                         </a>
                     </div> -->
-                </div>
-            </div>
-            <?php 
-                endforeach; 
-            else: 
-            ?>
-            <p>No reviews found for this product.</p>
-            <?php endif; ?>
-        </div>
+                                                    </div>
+                                                </div>
+                                                <?php
+                                            endforeach;
+                                        else:
+                                            ?>
+                                            <p>No reviews found for this product.</p>
+                                        <?php endif; ?>
+                                    </div>
 
-                                        <!-- <div
+                                    <!-- <div
                                             class="d-flex align-items-start gap-24 pb-44 border-bottom border-gray-100 mb-44">
                                             <img src="<?= getenv("BASE_URL") . "/assets/" ?>images/thumbs/comment-img1.png"
                                                 alt="" class="w-52 h-52 object-fit-cover rounded-circle flex-shrink-0">
@@ -1017,44 +1070,44 @@ else {
                                             </div>
                                         </div> -->
 
-                                        <div class="mt-56">
-                                            <div class="">
-                                                <h6 class="mb-24">Write a Review</h6>
-                                                <span class="text-heading mb-8">What is it like to Product?</span>
-                                                <div class="flex-align gap-8">
-                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
-                                                            class="ph-fill ph-star"></i></span>
-                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
-                                                            class="ph-fill ph-star"></i></span>
-                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
-                                                            class="ph-fill ph-star"></i></span>
-                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
-                                                            class="ph-fill ph-star"></i></span>
-                                                    <span class="text-xs fw-medium text-warning-600 d-flex"><i
-                                                            class="ph-fill ph-star"></i></span>
-                                                </div>
-                                            </div>
-                                            <div class="mt-32">\
-                                                <form action="#">
-                                                    <div class="mb-32">
-                                                        <label for="title" class="text-neutral-600 mb-8">Review
-                                                            Title</label>
-                                                        <input type="text" class="common-input rounded-8" id="title"
-                                                            placeholder="Great Products">
-                                                    </div>
-                                                    <div class="mb-32">
-                                                        <label for="desc" class="text-neutral-600 mb-8">Review
-                                                            Content</label>
-                                                        <textarea class="common-input rounded-8"
-                                                            id="desc">It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.</textarea>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-main rounded-pill mt-48">Submit
-                                                        Review</button>
-                                                </form>
+                                    <div class="mt-56">
+                                        <div class="">
+                                            <h6 class="mb-24">Write a Review</h6>
+                                            <span class="text-heading mb-8">What is it like to Product?</span>
+                                            <div class="flex-align gap-8">
+                                                <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                        class="ph-fill ph-star"></i></span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                        class="ph-fill ph-star"></i></span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                        class="ph-fill ph-star"></i></span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                        class="ph-fill ph-star"></i></span>
+                                                <span class="text-xs fw-medium text-warning-600 d-flex"><i
+                                                        class="ph-fill ph-star"></i></span>
                                             </div>
                                         </div>
+                                        <div class="mt-32">\
+                                            <form action="#">
+                                                <div class="mb-32">
+                                                    <label for="title" class="text-neutral-600 mb-8">Review
+                                                        Title</label>
+                                                    <input type="text" class="common-input rounded-8" id="title"
+                                                        placeholder="Great Products">
+                                                </div>
+                                                <div class="mb-32">
+                                                    <label for="desc" class="text-neutral-600 mb-8">Review
+                                                        Content</label>
+                                                    <textarea class="common-input rounded-8"
+                                                        id="desc">It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.</textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-main rounded-pill mt-48">Submit
+                                                    Review</button>
+                                            </form>
+                                        </div>
                                     </div>
-                                    <!-- <div class="col-lg-6">
+                                </div>
+                                <!-- <div class="col-lg-6">
                                         <div class="ms-xxl-5">
                                             <h6 class="mb-24">Customers Feedback</h6>
                                             <div class="d-flex flex-wrap gap-44">
@@ -1191,18 +1244,18 @@ else {
                                         </div>
 
                                     </div> -->
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </div>
     </section>
     <!-- ========================== Product Details Two End =========================== -->
 
-        <!-- ========================== Similar Product Start ============================= -->
-     <section class="new-arrival pb-80">
+    <!-- ========================== Similar Product Start ============================= -->
+    <section class="new-arrival pb-80">
         <div class="container container-lg">
             <div class="section-heading">
                 <div class="flex-between flex-wrap gap-8">
@@ -1234,7 +1287,7 @@ else {
                     if ($currentId) {
                         $similarProducts = array_filter($similarProducts, fn($p) => ($p['id'] ?? null) != $currentId);
                     }
-                    usort($similarProducts, function($a, $b) {
+                    usort($similarProducts, function ($a, $b) {
                         return ($b['popularity'] ?? 0) - ($a['popularity'] ?? 0);
                     });
                     $similarProducts = array_slice($similarProducts, 0, 8);
@@ -1247,9 +1300,14 @@ else {
                     $images = $product['images'] ?? [];
                     $primary = null;
                     foreach ($images as $img) {
-                        if (!empty($img['isPrimary'])) { $primary = $img['imageUrl']; break; }
+                        if (!empty($img['isPrimary'])) {
+                            $primary = $img['imageUrl'];
+                            break;
+                        }
                     }
-                    if (!$primary && !empty($images)) { $primary = $images[0]['imageUrl']; }
+                    if (!$primary && !empty($images)) {
+                        $primary = $images[0]['imageUrl'];
+                    }
                     $primary = $primary ?: getenv("BASE_URL") . "/assets/images/thumbs/product-img-placeholder.png";
 
                     // price & discount
@@ -1284,55 +1342,64 @@ else {
                     $reviewsCount = is_array($reviewsArr) ? count($reviewsArr) : 0;
 
                     $productUrl = getenv('BASE_URL') . '/product/' . $utils->makeSlug($pname);
-                ?>
-                <div>
-                    <div class="product-card h-100 p-8 border border-gray-100 hover-border-main-600 rounded-16 position-relative transition-2">
-                        <?php if ($percentOff > 0): ?>
-                           
-                        <?php elseif (!empty($product['popularity'])): ?>
-                            <span class="product-card__badge bg-info-600 px-8 py-4 text-sm text-white">Popularity <?= intval($product['popularity']) ?></span>
-                        <?php endif; ?>
+                    ?>
+                    <div>
+                        <div
+                            class="product-card h-100 p-8 border border-gray-100 hover-border-main-600 rounded-16 position-relative transition-2">
+                            <?php if ($percentOff > 0): ?>
 
-                        <a href="<?= htmlspecialchars($productUrl) ?>" class="product-card__thumb flex-center overflow-hidden">
-                            <img src="<?= htmlspecialchars($primary) ?>" alt="<?= htmlspecialchars($pname) ?>">
-                        </a>
-                        <div class="product-card__content p-sm-2 w-100">
-                            <h6 class="title text-lg fw-semibold mt-12 mb-8">
-                                <a href="<?= htmlspecialchars($productUrl) ?>" class="link text-line-2"><?= htmlspecialchars($pname) ?></a>
-                            </h6>
-                            <div class="flex-align gap-4">
-                                <span class="text-main-600 text-md d-flex"><i class="ph-fill ph-storefront"></i></span>
-                                <span class="text-gray-500 text-xs"><?= htmlspecialchars($product['category']['name'] ?? 'Store') ?></span>
-                            </div>
+                            <?php elseif (!empty($product['popularity'])): ?>
+                                <span class="product-card__badge bg-info-600 px-8 py-4 text-sm text-white">Popularity
+                                    <?= intval($product['popularity']) ?></span>
+                            <?php endif; ?>
 
-                            <div class="product-card__content mt-12">
-                                <div class="product-card__price mb-8">
-                                    <span class="text-heading text-md fw-semibold ">₹<?= number_format($discountedPrice, 2) ?> <span class="text-gray-500 fw-normal">/Qty</span> </span>
-                                    <?php if ($discountedPrice < $originalPrice): ?>
-                                        <span class="text-gray-400 text-md fw-semibold text-decoration-line-through">₹<?= number_format($originalPrice, 2) ?></span>
-                                    <?php endif; ?>
+                            <a href="<?= htmlspecialchars($productUrl) ?>"
+                                class="product-card__thumb flex-center overflow-hidden">
+                                <img src="<?= htmlspecialchars($primary) ?>" alt="<?= htmlspecialchars($pname) ?>">
+                            </a>
+                            <div class="product-card__content p-sm-2 w-100">
+                                <h6 class="title text-lg fw-semibold mt-12 mb-8">
+                                    <a href="<?= htmlspecialchars($productUrl) ?>"
+                                        class="link text-line-2"><?= htmlspecialchars($pname) ?></a>
+                                </h6>
+                                <div class="flex-align gap-4">
+                                    <span class="text-main-600 text-md d-flex"><i class="ph-fill ph-storefront"></i></span>
+                                    <span
+                                        class="text-gray-500 text-xs"><?= htmlspecialchars($product['category']['name'] ?? 'Store') ?></span>
                                 </div>
-                                <div class="flex-align gap-6">
-                                    <span class="text-xs fw-bold text-gray-600"><?= $ratingDisplay ?></span>
-                                    <span class="text-15 fw-bold text-warning-600 d-flex"><i class="ph-fill ph-star"></i></span>
-                                    <span class="text-xs fw-bold text-gray-600">(<?= $reviewsCount ?>)</span>
-                                </div>
-                               <a href="javascript:void(0);"
-    data-product-id="<?= htmlspecialchars($product['id'] ?? '') ?>"
-    class="product-card__cart btn bg-main-50 text-main-600 hover-bg-main-600 hover-text-white py-11 px-24 rounded-pill flex-align gap-8 mt-24 w-100 justify-content-center add-to-cart">
-    Add To Cart <i class="ph ph-shopping-cart"></i>
-</a>
 
+                                <div class="product-card__content mt-12">
+                                    <div class="product-card__price mb-8">
+                                        <span
+                                            class="text-heading text-md fw-semibold ">₹<?= number_format($discountedPrice, 2) ?>
+                                            <span class="text-gray-500 fw-normal">/Qty</span> </span>
+                                        <?php if ($discountedPrice < $originalPrice): ?>
+                                            <span
+                                                class="text-gray-400 text-md fw-semibold text-decoration-line-through">₹<?= number_format($originalPrice, 2) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex-align gap-6">
+                                        <span class="text-xs fw-bold text-gray-600"><?= $ratingDisplay ?></span>
+                                        <span class="text-15 fw-bold text-warning-600 d-flex"><i
+                                                class="ph-fill ph-star"></i></span>
+                                        <span class="text-xs fw-bold text-gray-600">(<?= $reviewsCount ?>)</span>
+                                    </div>
+                                    <a href="javascript:void(0);"
+                                        data-product-id="<?= htmlspecialchars($product['id'] ?? '') ?>"
+                                        class="product-card__cart btn bg-main-50 text-main-600 hover-bg-main-600 hover-text-white py-11 px-24 rounded-pill flex-align gap-8 mt-24 w-100 justify-content-center add-to-cart">
+                                        Add To Cart <i class="ph ph-shopping-cart"></i>
+                                    </a>
+
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 <?php endforeach; ?>
             </div>
         </div>
     </section>
     <!-- ========================== Similar Product End ============================= -->
-   
+
 
     <!-- ========================== Shipping Section Start ============================ -->
     <section class="shipping mb-24" id="shipping">
@@ -1504,17 +1571,17 @@ else {
                             notyf.error("Something went wrong.");
                         }
                     },
-                  error: function (xhr) {
-    console.log(xhr);
+                    error: function (xhr) {
+                        console.log(xhr);
 
-    if (xhr.status === 409) {
-        notyf.error(xhr.responseJSON?.message || "Email already subscribed.");
-    } else if (xhr.status === 400) {
-        notyf.error(xhr.responseJSON?.message || "Invalid email address.");
-    } else {
-        notyf.error("Server error or invalid request.");
-    }
-},
+                        if (xhr.status === 409) {
+                            notyf.error(xhr.responseJSON?.message || "Email already subscribed.");
+                        } else if (xhr.status === 400) {
+                            notyf.error(xhr.responseJSON?.message || "Invalid email address.");
+                        } else {
+                            notyf.error("Server error or invalid request.");
+                        }
+                    },
 
                 });
             });
@@ -1605,7 +1672,34 @@ else {
         });
 
     </script>
+    <style>
+        .color-item {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            overflow: hidden;
+            display: inline-block;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
 
+        .color-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .color-item.active {
+            border-color: #007bff;
+            /* Highlight selected */
+        }
+
+        .no-img-color {
+            width: 100%;
+            height: 100%;
+            background-color: #e0e0e0;
+        }
+    </style>
 
 
 </body>
